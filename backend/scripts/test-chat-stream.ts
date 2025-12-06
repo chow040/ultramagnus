@@ -100,9 +100,9 @@ async function testChatStream() {
 
   // 3. Execute Stream
   try {
-    console.log('📡 Connecting to Gemini (gemini-3-pro-preview)...');
+    console.log('📡 Connecting to Gemini (gemini-2.5-flash)...');
     const stream = await client.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-2.5-flash',
       contents: mergedContents
     });
 

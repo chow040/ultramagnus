@@ -66,7 +66,7 @@ export const chatWithGemini = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-2.5-flash',
       contents: contents,
       config: {
         tools: [{googleSearch: {}}],
@@ -161,7 +161,7 @@ export const generateEquityReport = async (ticker: string, onChunk?: (text: stri
 
   try {
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         tools: [{googleSearch: {}}],

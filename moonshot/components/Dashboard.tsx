@@ -348,7 +348,7 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
           `}
         >
            {/* Left: Identity */}
-           <div className="flex items-center gap-4 min-w-[180px]">
+           <div className="flex items-start gap-4 min-w-[180px]">
                <div>
                   <div className="flex items-center gap-2">
                      <span className="font-sans font-semibold text-lg text-primary group-hover:text-primary transition-colors">{displayData.ticker}</span>
@@ -363,7 +363,11 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
                     )}
                   </div>
                </div>
-               {displayData.isNew && <span className="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">New</span>}
+               {displayData.isNew && (
+                 <span className="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider self-start mt-0.5">
+                   New
+                 </span>
+               )}
            </div>
 
            {/* Middle: Performance Snapshot */}

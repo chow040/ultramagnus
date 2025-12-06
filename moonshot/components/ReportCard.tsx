@@ -492,7 +492,7 @@ const ChatWidget = ({
     return apiJson(`/api/reports/${reportId}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role, content, model: 'gemini-3-pro-preview' })
+      body: JSON.stringify({ role, content, model: 'gemini-2.5-flash' })
     }, { operation: 'conversation.save' });
   }, [reportId]);
 
@@ -1251,6 +1251,21 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                    {report.priceChange} Today
                 </div>
             </div>
+            {/* Target Price (mobile-first so price + target stay together) */}
+            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px] lg:hidden">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
+                   <Goal className="w-4 h-4" /> 1Y Target
+                </div>
+                <div className="text-3xl font-mono font-bold text-primary mb-1">
+                   {report.priceTarget || 'N/A'}
+                </div>
+                {targetUpside !== null && (
+                  <div className={`text-sm font-bold px-3 py-1 rounded-full bg-surface border border-border ${upsideColor}`}>
+                     {targetUpside > 0 ? '+' : ''}{targetUpside.toFixed(1)}% Upside
+                  </div>
+                )}
+                <div className="text-[11px] text-secondary/80 mt-2">Analyst consensus (1Y)</div>
+            </div>
         </div>
 
         {/* COLUMN 2: THE POTENTIAL (Moonshot Score & Target) - Locked */}
@@ -1267,8 +1282,8 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                    <ExpandableText text={report.rocketReason} />
                 </div>
             </div>
-            {/* Target Price */}
-            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px]">
+            {/* Target Price (desktop) */}
+            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px] hidden lg:flex">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
                    <Goal className="w-4 h-4" /> 1Y Target
                 </div>
@@ -1280,6 +1295,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                      {targetUpside > 0 ? '+' : ''}{targetUpside.toFixed(1)}% Upside
                   </div>
                 )}
+                <div className="text-[11px] text-secondary/80 mt-2">Analyst consensus (1Y)</div>
             </div>
         </LockedFeature>
 

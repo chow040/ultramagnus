@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { config } from '../config/env.js';
 import {
   appendMessage,
   ConversationError,
@@ -35,7 +36,8 @@ conversationRouter.post('/reports/:id/chat', requireAuth, async (req, res) => {
   const { role, content, model } = req.body || {};
 
   try {
-    const { messageId, sessionId } = await appendMessage({ reportId: id, userId, role, content, model });
+    const resolvedModel = model || config.geminiChatModel;
+    const { messageId, sessionId } = await appendMessage({ reportId: id, userId, role, content, model: resolvedModel });
     const conversation = await getConversation(id, userId, Number(req.query.limit) || undefined);
     const summaryResult = await summarizeIfNeeded(id, userId);
     return res.status(201).json({ messageId, sessionId, conversation, summaryResult });

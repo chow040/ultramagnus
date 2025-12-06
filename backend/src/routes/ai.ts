@@ -9,6 +9,7 @@ import {
   getConversation,
   summarizeIfNeeded
 } from '../services/conversationService.js';
+import { config } from '../config/env.js';
 
 const REPORT_PROMPT = (ticker: string) => `
   Generate a comprehensive professional equity research report for ${ticker}.
@@ -81,7 +82,7 @@ const REPORT_PROMPT = (ticker: string) => `
 
 export const aiRouter = Router();
 
-const MODEL_NAME = 'gemini-3-pro-preview';
+const MODEL_NAME = config.geminiChatModel;
 
 const ensureClient = () => {
   try {
@@ -213,7 +214,7 @@ aiRouter.post('/chat', requireAuth, async (req, res) => {
           userId,
           role: 'user',
           content: latestUserMessage.text,
-          model: 'gemini-3-pro-preview'
+          model: MODEL_NAME
         });
       }
 
@@ -222,7 +223,7 @@ aiRouter.post('/chat', requireAuth, async (req, res) => {
         userId,
         role: 'assistant',
         content: text,
-        model: 'gemini-3-pro-preview'
+        model: MODEL_NAME
       });
 
       const summaryResult = await summarizeIfNeeded(reportId, userId);

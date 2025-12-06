@@ -18,6 +18,9 @@ import { errorHandler } from './middleware/errorHandler.js';
 export const createApp = () => {
   const app = express();
 
+  // Disable etag/304 for API responses to avoid empty bodies being cached by fetch clients
+  app.set('etag', false);
+
   app.use(helmet());
   app.use(express.json());
   app.use(cors({
@@ -27,6 +30,12 @@ export const createApp = () => {
   app.use(cookieParser());
   app.use(correlationIdMiddleware);
   app.use(requestLogger);
+
+  // Prevent intermediary caching of API responses
+  app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });

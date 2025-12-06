@@ -12,6 +12,8 @@ if (missing.length) {
   bootstrapLog('warn', 'env.missing_variables', { keys: missing });
 }
 
+const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+
 export const config = {
   port: parseInt(process.env.PORT || '4000', 10),
   sessionSecret: process.env.SESSION_SECRET || 'change-me',
@@ -26,6 +28,8 @@ export const config = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   resendApiKey: process.env.RESEND_API_KEY || '',
   mailFrom: process.env.MAIL_FROM || 'no-reply@example.com',
+  geminiAnalyzeModel: process.env.GEMINI_ANALYZE_MODEL || GEMINI_DEFAULT_MODEL,
+  geminiChatModel: process.env.GEMINI_CHAT_MODEL || GEMINI_DEFAULT_MODEL,
   nodeEnv,
   logLevel: defaultLogLevel,
   serviceName: process.env.SERVICE_NAME || 'backend-bff'

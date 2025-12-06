@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getGenAiClient } from '../clients/genai.js';
 import { logger } from '../utils/logger.js';
 import { requireAuth } from '../middleware/auth.js';
+import { config } from '../config/env.js';
 
 const describeGenAiError = (err: any) => {
   if (!err) return { providerMessage: 'unknown_error' };
@@ -48,7 +49,7 @@ aiStreamRouter.post('/ai/stream-report', async (req, res) => {
 
   try {
     const stream = await client.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
+      model: config.geminiAnalyzeModel,
       contents: [
         { role: 'user', parts: [{ text: `Generate a comprehensive equity research report JSON for ${ticker}. Include current price, financials, and technical analysis. Return ONLY valid JSON.` }] }
       ]
@@ -177,7 +178,7 @@ aiStreamRouter.post('/chat/stream', requireAuth, async (req, res) => {
 
   try {
     const stream = await client.models.generateContentStream({
-      model: 'gemini-3-pro-preview',
+      model: config.geminiChatModel,
       contents: mergedContents
     });
 
