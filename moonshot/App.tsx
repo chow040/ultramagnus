@@ -1131,33 +1131,21 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   const isTeaserMode = !user && !customKey && report?.ticker !== 'ASTRO';
 
   return (
-    <div className="min-h-screen font-sans bg-slate-950 text-slate-200 relative overflow-hidden pb-20 selection:bg-indigo-500/30">
+    <div className="min-h-screen font-sans bg-background text-primary relative overflow-hidden pb-20 selection:bg-secondary/20">
 
-      {/* PROFESSIONAL BACKGROUND EFFECTS (Shared across Landing and Dashboard) */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-slate-950"></div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[800px] bg-gradient-to-b from-indigo-900/10 via-slate-900/50 to-slate-950 opacity-70"></div>
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `linear-gradient(to bottom, #ffffff 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-            maskImage: 'radial-gradient(circle at 50% 0%, black, transparent 80%)'
-          }}>
-        </div>
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-900/5 blur-[120px] mix-blend-screen"></div>
-        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-900/5 blur-[120px] mix-blend-screen"></div>
-      </div>
+      {/* MINIMALIST BACKGROUND */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-background"></div>
 
       {saveIssues.length > 0 && (
         <div className="relative z-20 max-w-4xl mx-auto mt-6 px-4">
           {saveIssues.map(issue => (
-            <div key={issue.ticker} className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 shadow-lg shadow-amber-900/30">
+            <div key={issue.ticker} className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-amber-100">
+                  <p className="text-sm font-semibold text-amber-900">
                     Report save failed for {issue.ticker} {issue.status ? `(HTTP ${issue.status})` : ''}
                   </p>
-                  <p className="text-xs text-amber-200/80 mt-1">
+                  <p className="text-xs text-amber-800 mt-1">
                     {issue.status === 413
                       ? 'This report is too large to save. Download it now or trim sections before retrying.'
                       : issue.message}
@@ -1165,7 +1153,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
                 </div>
                 <button
                   onClick={() => dismissSaveIssue(issue.ticker)}
-                  className="text-amber-200/80 hover:text-white transition-colors"
+                  className="text-amber-700 hover:text-amber-900 transition-colors"
                   aria-label="Dismiss save issue"
                 >
                   <X className="w-4 h-4" />
@@ -1174,13 +1162,13 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={() => retrySaveIssue(issue.ticker)}
-                  className="px-3 py-1.5 rounded-md bg-amber-400 text-slate-900 text-xs font-semibold hover:bg-amber-300 transition-colors"
+                  className="px-3 py-1.5 rounded-md bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors"
                 >
                   Retry save
                 </button>
                 <button
                   onClick={() => downloadIssuePayload(issue.ticker)}
-                  className="px-3 py-1.5 rounded-md border border-amber-300 text-amber-100 text-xs font-semibold hover:bg-amber-500/20 transition-colors"
+                  className="px-3 py-1.5 rounded-md border border-amber-300 text-amber-900 text-xs font-semibold hover:bg-amber-100 transition-colors"
                 >
                   Download report JSON
                 </button>
@@ -1193,7 +1181,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
       {staleBookmarkMessages.length > 0 && (
         <div className="relative z-20 max-w-4xl mx-auto mt-4 px-4">
           {staleBookmarkMessages.map((msg, idx) => (
-            <div key={idx} className="mb-2 rounded-lg border border-blue-500/40 bg-blue-500/10 p-3 shadow-lg shadow-blue-900/30 text-xs text-blue-100">
+            <div key={idx} className="mb-2 rounded-lg border border-blue-200 bg-blue-50 p-3 shadow-sm text-xs text-blue-800">
               {msg}
             </div>
           ))}
@@ -1202,17 +1190,17 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
 
       {bookmarkError && (
         <div className="relative z-20 max-w-4xl mx-auto mt-4 px-4">
-          <div className="rounded-lg border border-blue-500/40 bg-blue-500/10 p-4 shadow-lg shadow-blue-900/30">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-blue-100">
+                <p className="text-sm font-semibold text-blue-900">
                   Bookmark update failed for {bookmarkError.ticker}
                 </p>
-                <p className="text-xs text-blue-200/80 mt-1">{bookmarkError.message}</p>
+                <p className="text-xs text-blue-800 mt-1">{bookmarkError.message}</p>
               </div>
               <button
                 onClick={() => setBookmarkError(null)}
-                className="text-blue-200/80 hover:text-white transition-colors"
+                className="text-blue-700 hover:text-blue-900 transition-colors"
                 aria-label="Dismiss bookmark issue"
               >
                 <X className="w-4 h-4" />
@@ -1224,17 +1212,17 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
 
       {reportLoadError && (
         <div className="relative z-20 max-w-4xl mx-auto mt-4 px-4">
-          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 shadow-lg shadow-red-900/30">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-red-100">
+                <p className="text-sm font-semibold text-red-900">
                   Could not open report for {reportLoadError.ticker} {reportLoadError.status ? `(HTTP ${reportLoadError.status})` : ''}
                 </p>
-                <p className="text-xs text-red-200/80 mt-1">{reportLoadError.message}</p>
+                <p className="text-xs text-red-800 mt-1">{reportLoadError.message}</p>
               </div>
               <button
                 onClick={() => setReportLoadError(null)}
-                className="text-red-200/80 hover:text-white transition-colors"
+                className="text-red-700 hover:text-red-900 transition-colors"
                 aria-label="Dismiss load issue"
               >
                 <X className="w-4 h-4" />
@@ -1243,7 +1231,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 onClick={() => regenerateFromLoadIssue(reportLoadError.ticker)}
-                className="px-3 py-1.5 rounded-md bg-red-400 text-slate-900 text-xs font-semibold hover:bg-red-300 transition-colors"
+                className="px-3 py-1.5 rounded-md bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
               >
                 Regenerate report
               </button>
@@ -1267,9 +1255,9 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
           />
         </div>
       ) : viewMode === 'TICKER_COMMAND' ? (
-        <div className="relative z-10 min-h-screen bg-slate-950">
+        <div className="relative z-10 min-h-screen bg-background">
            <div className="p-4">
-             <button onClick={() => setViewMode('DASHBOARD')} className="mb-4 text-slate-400 hover:text-white flex items-center gap-2">
+             <button onClick={() => setViewMode('DASHBOARD')} className="mb-4 text-secondary hover:text-primary flex items-center gap-2">
                &larr; Back to Dashboard
              </button>
              <TickerCommandCenterMockup />
@@ -1287,8 +1275,8 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
           />
 
           {/* TEMP DEV BUTTON */}
-          <div className="flex justify-center py-1 bg-slate-950 border-b border-white/5">
-             <button onClick={() => setViewMode('TICKER_COMMAND')} className="text-[10px] uppercase tracking-widest text-indigo-500 hover:text-indigo-400 font-bold">
+          <div className="flex justify-center py-1 bg-surface border-b border-border">
+             <button onClick={() => setViewMode('TICKER_COMMAND')} className="text-[10px] uppercase tracking-widest text-primary hover:text-secondary font-bold">
                View Ticker Command Center Mockup
              </button>
           </div>
@@ -1343,33 +1331,33 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-background/90 backdrop-blur-sm transition-opacity"
             onClick={handleCloseDemoModal}
           ></div>
 
           {/* Modal Content */}
-          <div className="relative w-full max-w-7xl max-h-[90vh] bg-slate-900 rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-fade-in-up">
+          <div className="relative w-full max-w-7xl max-h-[90vh] bg-surface rounded-3xl border border-border shadow-2xl overflow-hidden flex flex-col animate-fade-in-up">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-white/10 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 bg-surface border-b border-border shrink-0">
               <div className="flex items-center gap-3">
-                <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="bg-primary/5 text-primary border border-primary/10 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5" /> Preview Mode
                 </span>
-                <h3 className="text-white font-bold">Ultramagnus Demo Report</h3>
+                <h3 className="text-primary font-bold">Ultramagnus Demo Report</h3>
               </div>
               <div className="flex items-center gap-4">
                 {!user && (
                   <button
                     onClick={() => handleOpenAuth('lock')}
-                    className="hidden sm:flex text-xs font-bold text-slate-300 hover:text-white transition-colors"
+                    className="hidden sm:flex text-xs font-bold text-secondary hover:text-primary transition-colors"
                   >
                     Create Free Account
                   </button>
                 )}
                 <button
                   onClick={handleCloseDemoModal}
-                  className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all border border-white/5"
+                  className="p-2 rounded-full bg-background hover:bg-gray-100 text-secondary hover:text-primary transition-all border border-border"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1377,7 +1365,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
             </div>
 
             {/* Scrollable Report Body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-950 p-4 md:p-8">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-background p-4 md:p-8">
               <div className="max-w-6xl mx-auto">
                 <ReportCard
                   report={report}
@@ -1392,11 +1380,11 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
 
             {/* Footer CTA (Sticky) */}
                 {!user && (
-                  <div className="p-4 bg-gradient-to-r from-indigo-900/90 to-purple-900/90 border-t border-white/10 flex flex-col sm:flex-row items-center justify-center gap-4 text-center shrink-0">
-                    <p className="text-sm text-indigo-100 font-medium">Ready to analyze real stocks with this depth?</p>
+                  <div className="p-4 bg-surface border-t border-border flex flex-col sm:flex-row items-center justify-center gap-4 text-center shrink-0">
+                    <p className="text-sm text-primary font-medium">Ready to analyze real stocks with this depth?</p>
                     <button
                       onClick={() => handleOpenAuth('lock')}
-                      className="px-6 py-2 bg-white text-indigo-900 font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-lg text-sm flex items-center gap-2"
+                      className="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg text-sm flex items-center gap-2"
                     >
                       Get Started for Free <ArrowRight className="w-4 h-4" />
                 </button>
@@ -1410,7 +1398,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
       {dashboardErrors && dashboardErrors.length > 0 && (
         <div className="relative z-20 max-w-4xl mx-auto mt-4 px-4">
           {dashboardErrors.map((err, idx) => (
-            <div key={idx} className="mb-2 rounded-lg border border-slate-500/40 bg-slate-500/10 p-3 shadow-lg shadow-slate-900/30 text-xs text-slate-100">
+            <div key={idx} className="mb-2 rounded-lg border border-red-200 bg-red-50 p-3 shadow-sm text-xs text-red-800">
               {err.section}: {err.message}
             </div>
           ))}

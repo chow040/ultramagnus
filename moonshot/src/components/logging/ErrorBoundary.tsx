@@ -12,9 +12,9 @@ type ErrorBoundaryState = {
 };
 
 const defaultFallback = (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h2>Something went wrong.</h2>
-    <p>Please refresh the page. Our team has been notified.</p>
+  <div className="p-8 text-center bg-surface rounded-lg border border-border shadow-sm max-w-md mx-auto mt-10">
+    <h2 className="text-xl font-bold text-primary mb-2">Something went wrong.</h2>
+    <p className="text-secondary mb-4">Please refresh the page. Our team has been notified.</p>
   </div>
 );
 
@@ -43,20 +43,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <div>
-          {this.props.fallback || defaultFallback}
-          <button
-            type="button"
-            onClick={this.handleReset}
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #ccc'
-            }}
-          >
-            Try again
-          </button>
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+          <div className="bg-surface p-8 rounded-xl border border-border shadow-lg text-center max-w-md w-full">
+            <h2 className="text-xl font-bold text-primary mb-2">Something went wrong</h2>
+            <p className="text-secondary mb-6">Please refresh the page. Our team has been notified.</p>
+            {this.props.fallback}
+            <button
+              type="button"
+              onClick={this.handleReset}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
+              Try again
+            </button>
+          </div>
         </div>
       );
     }

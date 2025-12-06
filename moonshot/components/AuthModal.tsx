@@ -160,20 +160,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       ></div>
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-fade-in-up">
+      <div className="relative w-full max-w-md bg-surface rounded-sm border border-border shadow-xl overflow-hidden animate-fade-in-up">
         {/* Decor */}
         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-           <Rocket className="w-40 h-40" />
+           <Rocket className="w-40 h-40 text-primary" />
         </div>
         
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors z-10"
+          className="absolute top-4 right-4 text-secondary hover:text-primary transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
@@ -181,12 +181,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
         <div className="p-8">
           {isVerificationSent ? (
             <div className="text-center animate-fade-in">
-              <div className="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-indigo-500/30 shadow-lg shadow-indigo-500/10">
-                <Mail className="w-8 h-8 text-indigo-400" />
+              <div className="w-16 h-16 bg-tertiary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-border">
+                <Mail className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-display font-bold text-white mb-2">Check your inbox</h2>
-              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                We've sent a verification link to <span className="text-white font-medium">{email}</span>.<br />
+              <h2 className="text-2xl font-sans font-semibold text-primary mb-2">Check your inbox</h2>
+              <p className="text-secondary text-sm mb-6 leading-relaxed">
+                We've sent a verification link to <span className="text-primary font-medium">{email}</span>.<br />
                 Please click the link to activate your account.
               </p>
 
@@ -195,7 +195,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                   href={verificationLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-indigo-500/20 mb-4 flex items-center justify-center gap-2"
+                  className="block w-full bg-primary hover:opacity-90 text-white font-medium py-3 rounded-sm transition-all shadow-sm mb-4 flex items-center justify-center gap-2"
                 >
                   Verify Account <ArrowRight className="w-4 h-4" />
                 </a>
@@ -206,7 +206,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                   setIsVerificationSent(false);
                   setIsLoginMode(true);
                 }}
-                className="text-slate-400 hover:text-white text-sm font-medium transition-colors mt-2"
+                className="text-secondary hover:text-primary text-sm font-medium transition-colors mt-2"
               >
                 Back to Sign In
               </button>
@@ -214,13 +214,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
           ) : (
             <>
               <div className="mb-6">
-                <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center mb-4 border border-indigo-500/30">
-                  <Rocket className="w-6 h-6 text-indigo-400" />
+                <div className="w-10 h-10 bg-tertiary/30 rounded-sm flex items-center justify-center mb-4">
+                  <Rocket className="w-5 h-5 text-primary" strokeWidth={1.5} />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-white">
+                <h2 className="text-2xl font-sans font-semibold text-primary">
                   {isLoginMode ? "Welcome Back" : "Create Account"}
                 </h2>
-                <p className="text-slate-400 text-sm mt-1">
+                <p className="text-secondary text-sm mt-1">
                   {isLoginMode
                     ? "Sign in to access your saved reports and analysis."
                     : (message || "Create a free account to continue analyzing.")}
@@ -229,14 +229,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+                  <label className="text-xs font-medium text-secondary uppercase">Email</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-secondary" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors placeholder-slate-600"
+                      className="w-full bg-transparent border border-border rounded-sm py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-primary transition-colors placeholder-tertiary"
                       placeholder="trader@example.com"
                       autoFocus
                     />
@@ -244,27 +244,27 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Password</label>
+                  <label className="text-xs font-medium text-secondary uppercase">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-secondary" />
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-slate-800 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors placeholder-slate-600"
+                      className="w-full bg-transparent border border-border rounded-sm py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-primary transition-colors placeholder-tertiary"
                       placeholder="••••••••"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-sm px-3 py-2">
                     {error}
                   </div>
                 )}
                 {verificationMessage && (
-                  <div className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-3 space-y-2">
-                    <div className="font-semibold text-amber-100">
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-sm px-3 py-3 space-y-2">
+                    <div className="font-medium text-amber-800">
                       {verificationMessage || "Your email isn't verified. Check your inbox or click Resend."}
                     </div>
                     <div className="flex items-center gap-2">
@@ -272,12 +272,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                         type="button"
                         onClick={handleResend}
                         disabled={isResendLoading || (!!resendAvailableAt && resendAvailableAt > Date.now())}
-                        className="px-3 py-1.5 rounded-md bg-amber-400 text-slate-900 text-xs font-bold hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        className="px-3 py-1.5 rounded-sm bg-amber-200 text-amber-900 text-xs font-medium hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                       >
                         {isResendLoading ? 'Sending...' : 'Resend verification email'}
                       </button>
                       {resendAvailableAt && resendAvailableAt > Date.now() && (
-                        <span className="text-[11px] text-amber-100/80">
+                        <span className="text-[11px] text-amber-700/80">
                           Try again in {Math.max(0, Math.ceil((resendAvailableAt - Date.now()) / 1000))}s
                         </span>
                       )}
@@ -287,7 +287,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                         href={verificationLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-indigo-200 underline hover:text-white"
+                        className="text-[11px] text-primary underline hover:text-secondary"
                       >
                         Open verification link
                       </a>
@@ -295,7 +295,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                   </div>
                 )}
                 {info && (
-                  <div className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2">
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-sm px-3 py-2">
                     {info}
                   </div>
                 )}
@@ -303,7 +303,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                 <button
                   type="submit"
                   disabled={isFormDisabled}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                  className="w-full bg-primary hover:opacity-90 text-white font-medium py-3 rounded-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                 >
                   {isLoading ? (
                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
@@ -315,11 +315,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                 </button>
               </form>
 
-              <div className="mt-6 text-center border-t border-white/5 pt-6">
+              <div className="mt-6 text-center border-t border-border pt-6">
                 <button
                   type="button"
                   onClick={handleGoogle}
-                  className="w-full bg-white text-slate-900 font-bold py-2.5 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="w-full bg-white border border-border text-primary font-medium py-2.5 rounded-sm hover:bg-tertiary/10 transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <GoogleIcon /> Sign in with Google
                 </button>
@@ -331,12 +331,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
                     resetVerificationUI();
                     setIsLoginMode(!isLoginMode);
                   }}
-                  className="text-slate-400 hover:text-white text-sm transition-colors"
+                  className="text-secondary hover:text-primary text-sm transition-colors"
                 >
                   {isLoginMode ? (
-                    <>New to Moonshot? <span className="text-indigo-400 font-bold">Create an account</span></>
+                    <>New to Moonshot? <span className="text-primary font-medium">Create an account</span></>
                   ) : (
-                    <>Already have an account? <span className="text-indigo-400 font-bold">Sign In</span></>
+                    <>Already have an account? <span className="text-primary font-medium">Sign In</span></>
                   )}
                 </button>
               </div>
