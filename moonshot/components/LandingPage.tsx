@@ -27,12 +27,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartAnalysis, onViewDemo, 
             >
               Sign In
             </button>
-            <button 
-              onClick={onStartAnalysis}
-              className="hidden md:flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-sm text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              Launch App
-            </button>
           </div>
         </div>
       </nav>
@@ -40,66 +34,65 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartAnalysis, onViewDemo, 
       {/* Hero Section */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 text-center mt-32 md:mt-20 mb-20">
         
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tertiary/30 border border-border text-secondary text-xs font-medium uppercase tracking-wider mb-8 animate-fade-in">
-          <Brain className="w-3 h-3" /> Powered by Gemini 2.0 Flash Thinking
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-tertiary/10 text-secondary text-[10px] font-bold uppercase tracking-widest mb-8 animate-fade-in">
+           AI-POWERED EQUITY RESEARCH
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-sans font-semibold text-primary tracking-tighter mb-8 max-w-4xl animate-fade-in-up">
-          Institutional Grade <br className="hidden md:block" />
-          <span className="text-secondary">Equity Research</span> for Everyone.
+        <h1 className="text-5xl md:text-7xl font-sans font-semibold text-primary tracking-tighter mb-6 max-w-4xl animate-fade-in-up leading-tight">
+          Rational analysis <br className="hidden md:block" />
+          for <span className="text-primary">irrational markets.</span>
         </h1>
 
-        <p className="text-lg md:text-xl text-secondary max-w-2xl mb-12 leading-relaxed animate-fade-in-up delay-100 font-light">
-          Stop relying on surface-level summaries. Ultramagnus uses advanced AI to build complex financial models, detect earnings call bias, and generate price targets in seconds.
+        <p className="text-lg md:text-xl text-secondary max-w-2xl mb-10 leading-relaxed animate-fade-in-up delay-100 font-light">
+          Synthesize financial models, earnings calls, and risk factors into a clear, unbiased investment thesis.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 animate-fade-in-up delay-200 w-full justify-center">
           <button 
             onClick={onStartAnalysis}
-            className="w-full sm:w-auto px-8 py-4 bg-primary text-white font-medium rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-lg group"
+            className="w-full sm:w-auto px-8 py-3 bg-primary text-white font-medium rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-base group"
           >
-            Analyze a Ticker Now
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            Analyze Ticker
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
           <button 
             onClick={onViewDemo}
-            className="w-full sm:w-auto px-8 py-4 bg-transparent text-primary font-medium rounded-sm border border-border hover:bg-tertiary/20 transition-colors flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-8 py-3 bg-transparent text-primary font-medium rounded-sm border border-border hover:bg-tertiary/20 transition-colors flex items-center justify-center gap-2 text-base"
           >
-            <Terminal className="w-5 h-5 text-secondary" />
-            View Demo Report
+            View Sample
           </button>
         </div>
 
         {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-7xl w-full animate-fade-in-up delay-300 text-left px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl w-full animate-fade-in-up delay-300 text-left px-4">
           
-          <div className="p-8 rounded-sm border border-border bg-surface hover:border-secondary/50 transition-colors group">
-            <div className="w-10 h-10 bg-tertiary/30 rounded-sm flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-              <BarChart3 className="w-5 h-5 text-primary" strokeWidth={1.5} />
+          <div className="p-6 rounded-sm border-0 bg-transparent group">
+            <div className="w-10 h-10 mb-4">
+              <BarChart3 className="w-6 h-6 text-primary" strokeWidth={1.5} />
             </div>
-            <h3 className="text-lg font-semibold text-primary mb-3">Deep Dive Financials</h3>
+            <h3 className="text-base font-bold text-primary mb-2">Deep Valuation</h3>
             <p className="text-sm text-secondary leading-relaxed">
-              We don't just read the news. We parse 10-Ks, balance sheets, and cash flow statements to build a complete valuation model.
+              Automated DCF and relative valuation modeling based on verified financial statements.
             </p>
           </div>
 
-          <div className="p-8 rounded-sm border border-border bg-surface hover:border-secondary/50 transition-colors group">
-            <div className="w-10 h-10 bg-tertiary/30 rounded-sm flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-              <Shield className="w-5 h-5 text-primary" strokeWidth={1.5} />
+          <div className="p-6 rounded-sm border-0 bg-transparent group">
+            <div className="w-10 h-10 mb-4">
+              <Shield className="w-6 h-6 text-primary" strokeWidth={1.5} />
             </div>
-            <h3 className="text-lg font-semibold text-primary mb-3">Bias & Risk Detection</h3>
+            <h3 className="text-base font-bold text-primary mb-2">Risk Detection</h3>
             <p className="text-sm text-secondary leading-relaxed">
-              Our AI reads between the lines of management earnings calls to spot hesitation, "spin," and hidden governance red flags.
+              Semantic analysis of earnings calls to identify executive hesitation and governance flags.
             </p>
           </div>
 
-          <div className="p-8 rounded-sm border border-border bg-surface hover:border-secondary/50 transition-colors group">
-            <div className="w-10 h-10 bg-tertiary/30 rounded-sm flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-              <Zap className="w-5 h-5 text-primary" strokeWidth={1.5} />
+          <div className="p-6 rounded-sm border-0 bg-transparent group">
+            <div className="w-10 h-10 mb-4">
+              <Zap className="w-6 h-6 text-primary" strokeWidth={1.5} />
             </div>
-            <h3 className="text-lg font-semibold text-primary mb-3">Scenario Modeling</h3>
+            <h3 className="text-base font-bold text-primary mb-2">Scenario Logic</h3>
             <p className="text-sm text-secondary leading-relaxed">
-              Understand the Bear, Base, and Bull cases immediately with probability-weighted price targets and upside analysis.
+              Probability-weighted Bear, Base, and Bull cases derived from macro and micro factors.
             </p>
           </div>
 

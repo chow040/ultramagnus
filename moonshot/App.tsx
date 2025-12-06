@@ -1274,18 +1274,12 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
             onOpenSettings={handleOpenSettings}
           />
 
-          {/* TEMP DEV BUTTON */}
-          <div className="flex justify-center py-1 bg-surface border-b border-border">
-             <button onClick={() => setViewMode('TICKER_COMMAND')} className="text-[10px] uppercase tracking-widest text-primary hover:text-secondary font-bold">
-               View Ticker Command Center Mockup
-             </button>
-          </div>
-
           <main className={`container mx-auto px-4 max-w-[1400px] transition-all duration-500 ease-in-out ${viewMode === 'DASHBOARD' ? 'pt-4' : 'pt-6'}`}>
 
             {viewMode === 'DASHBOARD' ? (
               <Dashboard
                 user={displayUser}
+                onViewCommandCenter={() => setViewMode('TICKER_COMMAND')}
                 reportLibrary={reportLibrary}
                 hasMoreReports={hasMoreReports}
                 hasMoreBookmarks={hasMoreBookmarks}

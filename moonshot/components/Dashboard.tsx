@@ -29,7 +29,9 @@ import {
   Layers,
   Bell,
   Calendar,
-  MousePointer2
+  MousePointer2,
+  FileText,
+  FileStack
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -51,6 +53,7 @@ interface DashboardProps {
   onSelectSuggestion: (symbol: string) => void;
   setShowSuggestions: (show: boolean) => void;
   onViewSample: () => void;
+  onViewCommandCenter: () => void;
   analysisSessions: AnalysisSession[];
   onViewAnalyzedReport: (id: string) => void;
   onCancelAnalysis: (id: string) => void;
@@ -364,22 +367,22 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
            </div>
 
            {/* Middle: Performance Snapshot */}
-           <div className="hidden sm:flex items-center gap-8 flex-1 justify-center">
-                <div className="flex flex-col items-center">
+           <div className="hidden sm:grid grid-cols-[1fr_auto_1fr_1fr_1fr] gap-4 flex-1 items-center justify-items-center">
+                <div className="flex flex-col items-center w-full">
                     <span className="text-[10px] font-medium text-secondary uppercase tracking-wider mb-1">Entry</span>
                     <span className="font-mono font-medium text-primary">{displayData.price}</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-secondary" />
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center w-full">
                     <span className="text-[10px] font-medium text-secondary uppercase tracking-wider mb-1">Target</span>
                     <span className="font-mono font-medium text-primary">{displayData.priceTarget || 'N/A'}</span>
                 </div>
-                <div className="flex flex-col items-center min-w-[60px]">
+                <div className="flex flex-col items-center w-full">
                     <span className="text-[10px] font-medium text-secondary uppercase tracking-wider mb-1">Upside</span>
                     <span className={`font-mono font-medium ${upsideVal > 0 ? 'text-emerald-600' : 'text-secondary'}`}>{upside}</span>
                 </div>
                 
-                <div className={`ml-4 px-2.5 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${verdictColor} min-w-[60px] text-center`}>
+                <div className={`px-2.5 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${verdictColor} w-[80px] text-center`}>
                     {displayData.verdict}
                 </div>
            </div>
@@ -528,6 +531,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   onSelectSuggestion,
   setShowSuggestions,
   onViewSample,
+  onViewCommandCenter,
   analysisSessions,
   onViewAnalyzedReport,
   onCancelAnalysis
@@ -573,46 +577,33 @@ const Dashboard: React.FC<DashboardProps> = ({
   const reportsGenerated = reportLibrary.length;
   const bullishCount = reportLibrary.filter(r => r.verdict === 'BUY').length;
 
-  // Reusable Interactive Stat Card Component
-  const StatFilterCard = ({ 
+  // Reusable Interactive Stat Tab Component (Dieter Rams Style: Minimal, Functional)
+  const StatFilterTab = ({ 
     active, 
     onClick, 
-    icon, 
     label, 
-    value, 
-    colorClass
+    count
   }: { 
     active: boolean, 
     onClick: () => void, 
-    icon: React.ReactNode, 
     label: string, 
-    value: React.ReactNode, 
-    colorClass: string
+    count: number
   }) => (
-    <div 
+    <button 
       onClick={onClick}
       className={`
-        relative overflow-hidden rounded-sm p-4 border h-24 flex flex-col justify-between cursor-pointer transition-all duration-300 group
+        flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all border
         ${active 
-          ? `bg-surface border-primary ring-1 ring-primary shadow-sm` 
-          : 'bg-surface border-border hover:border-secondary/50 hover:bg-tertiary/10'
+          ? 'bg-primary text-white border-primary shadow-sm' 
+          : 'bg-surface text-secondary border-border hover:border-secondary/50 hover:text-primary'
         }
       `}
     >
-        <div className={`absolute top-0 right-0 p-3 transition-all duration-500 ${active ? 'opacity-10 scale-110' : 'opacity-5 group-hover:opacity-10 group-hover:scale-110 group-hover:-rotate-12'}`}>
-          <div className={`transform text-primary`}>
-             {icon}
-          </div>
-        </div>
-        
-        <div className={`text-[10px] font-medium uppercase tracking-widest z-10 transition-colors ${active ? 'text-primary' : 'text-secondary group-hover:text-primary'}`}>
-           {label}
-        </div>
-        
-        <div className={`text-3xl font-mono font-medium z-10 text-primary`}>
-           {value}
-        </div>
-    </div>
+      <span>{label}</span>
+      <span className={`font-mono text-xs ${active ? 'text-white/70' : 'text-secondary/70'}`}>
+        {count}
+      </span>
+    </button>
   );
 
   return (
@@ -629,11 +620,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               <span className="h-1 w-1 bg-secondary rounded-full"></span>
               <span className="text-xs text-secondary font-mono">{new Date().toLocaleDateString(undefined, {weekday: 'long', month: 'long', day: 'numeric'})}</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-sans font-semibold text-primary tracking-tight leading-tight">
+            <h2 className="text-3xl md:text-4xl font-sans font-semibold text-primary tracking-tight leading-tight">
               Hello, <span className="text-primary">{user.name.split(' ')[0]}</span>.
             </h2>
-            <p className="text-secondary mt-2 max-w-xl text-lg font-light">
-              Ready to find the next moonshot? Markets are {marketStatus} today.
+            <p className="text-secondary mt-2 max-w-xl text-base font-light">
+              Your command center for AI-powered market analysis. Markets are {marketStatus} today.
             </p>
           </div>
 
@@ -665,7 +656,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <form onSubmit={(e) => onSearch(e)} className="relative group">
               <div className="relative" ref={dropdownRef}>
                 <div className="relative flex items-center bg-surface rounded-sm border border-border shadow-sm overflow-hidden hover:border-secondary/50 transition-colors">
-                  <div className="pl-6 text-secondary">
+                  <div className="pl-4 text-secondary">
                     <Search className="w-5 h-5" strokeWidth={1.5} />
                   </div>
                   <input
@@ -674,16 +665,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     onChange={onTickerChange}
                     onFocus={() => { if(tickerInput) setShowSuggestions(true); }}
                     placeholder="ENTER TICKER SYMBOL (e.g. NVDA, PLTR)..."
-                    className="w-full bg-transparent px-4 py-6 text-xl text-primary placeholder-tertiary focus:outline-none font-mono uppercase tracking-wider"
+                    className="w-full bg-transparent px-4 py-4 text-lg text-primary placeholder-tertiary focus:outline-none font-mono uppercase tracking-wider"
                     autoComplete="off"
                   />
                   <div className="pr-2">
                     <button
                         type="submit"
                         disabled={!tickerInput}
-                        className="bg-primary hover:opacity-90 text-white px-8 py-3 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-sm flex items-center gap-2 text-sm tracking-wide"
+                        className="bg-primary hover:opacity-90 text-white px-6 py-2 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-sm flex items-center gap-2 text-xs tracking-wide"
                     >
-                        INITIATE <ArrowRight className="w-4 h-4" />
+                        INITIATE <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -718,7 +709,13 @@ const Dashboard: React.FC<DashboardProps> = ({
              >
                 <Zap className="w-3 h-3" /> Load Sample Report
              </button>
-             <div className="text-[10px] text-secondary font-mono uppercase">
+             <button 
+                onClick={onViewCommandCenter}
+                className="text-xs font-medium text-secondary hover:text-primary flex items-center gap-2 transition-colors bg-transparent px-3 py-1.5 rounded-full border border-border hover:border-secondary/50"
+             >
+                <LayoutGrid className="w-3 h-3" /> Command Center
+             </button>
+             <div className="text-[10px] text-secondary font-mono uppercase ml-2">
                 Trending: <span className="text-secondary hover:text-primary cursor-pointer transition-colors mx-1" onClick={() => onSearch(undefined, 'NVDA')}>NVDA</span>
                 <span className="text-secondary hover:text-primary cursor-pointer transition-colors mx-1" onClick={() => onSearch(undefined, 'TSLA')}>TSLA</span>
                 <span className="text-secondary hover:text-primary cursor-pointer transition-colors mx-1" onClick={() => onSearch(undefined, 'PLTR')}>PLTR</span>
@@ -727,31 +724,25 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 2. Interactive Quick Filter Stats Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          <StatFilterCard 
+      {/* 2. Interactive Quick Filter Tabs */}
+      <div className="flex flex-wrap items-center gap-3 mb-8">
+          <StatFilterTab 
             active={filter === 'ALL'}
             onClick={() => setFilter('ALL')}
-            label="Reports Generated"
-            value={reportsGenerated}
-            icon={<Database className="w-12 h-12" />}
-            colorClass="text-primary"
+            label="All Reports"
+            count={reportsGenerated}
           />
-          <StatFilterCard 
+          <StatFilterTab 
             active={filter === 'BOOKMARKED'}
             onClick={() => setFilter('BOOKMARKED')}
             label="Bookmarked"
-            value={bookmarkedCount}
-            icon={<Bookmark className="w-12 h-12" />}
-            colorClass="text-primary"
+            count={bookmarkedCount}
           />
-          <StatFilterCard 
+          <StatFilterTab 
             active={filter === 'BULLISH'}
             onClick={() => setFilter('BULLISH')}
             label="Bullish Finds"
-            value={bullishCount}
-            icon={<Rocket className="w-12 h-12" />}
-            colorClass="text-primary"
+            count={bullishCount}
           />
       </div>
 
@@ -795,8 +786,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div className="bg-surface rounded-sm p-12 border border-border border-dashed flex flex-col items-center justify-center text-center min-h-[300px] animate-fade-in">
                 <div className="w-16 h-16 bg-tertiary/20 rounded-full flex items-center justify-center mb-4">
                     {filter === 'BOOKMARKED' ? <Bookmark className="w-8 h-8 text-secondary" /> :
-                    filter === 'BULLISH' ? <Rocket className="w-8 h-8 text-secondary" /> :
-                    <Database className="w-8 h-8 text-secondary" />}
+                    filter === 'BULLISH' ? <TrendingUp className="w-8 h-8 text-secondary" /> :
+                    <FileStack className="w-8 h-8 text-secondary" />}
                 </div>
                 
                 <h4 className="text-xl font-semibold text-primary mb-2">

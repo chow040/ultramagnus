@@ -168,7 +168,7 @@ const ExpandableText = ({ text }: { text: string }) => {
         {showButton && (
           <button 
             onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
-            className="w-full flex items-center justify-center gap-1 mt-2 text-[10px] uppercase font-bold text-primary hover:text-primary/80 transition-colors bg-tertiary/10 py-1 rounded-sm border border-border hover:bg-tertiary/20"
+            className="w-full flex items-center justify-center gap-1 mt-3 text-[10px] uppercase font-bold text-primary hover:text-white transition-all bg-surface border border-primary/20 hover:bg-primary py-1.5 rounded-sm shadow-sm"
           >
              Read More <ChevronDown className="w-3 h-3" />
           </button>
@@ -1222,181 +1222,94 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
         </div>
       </div>
 
-      {/* 2. At a Glance Section (REFACTORED: 3 Grouped Dashboard Panels) */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      {/* 2. At a Glance Section (REFACTORED: Dieter Rams Style - 3 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* A. Verdict Card (Standalone) */}
-        <LockedFeature isLocked={isTeaserMode} onUnlock={onUnlock} label="Analyst Verdict" className="xl:col-span-2 bg-surface rounded-sm border border-border relative overflow-hidden flex flex-col items-center justify-center">
-             <div className="p-6 relative z-10 flex flex-col items-center text-center w-full h-48 justify-center">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-secondary mb-3">
-                   <Target className="w-4 h-4" />
-                   Verdict
+        {/* COLUMN 1: THE SIGNAL (Verdict & Current Price) - Unlocked */}
+        <div className="bg-surface rounded-sm border border-border flex flex-col divide-y divide-border h-full">
+            {/* Verdict */}
+            <div className="p-8 flex-1 flex flex-col items-center justify-center text-center">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-4">
+                   <Target className="w-4 h-4" /> Verdict
                 </div>
-                <div className={`text-2xl xl:text-3xl font-sans font-bold ${verdictColor} flex items-center gap-2`}>
-                   <VerdictIcon className="w-6 h-6" />
-                   {report.verdict}
+                <div className={`text-5xl font-sans font-bold ${verdictColor} flex items-center gap-3 mb-2`}>
+                   <VerdictIcon className="w-10 h-10" /> {report.verdict}
                 </div>
-                <div className="mt-3 text-[10px] text-secondary font-medium px-2 py-0.5 rounded-sm bg-tertiary/20 border border-border">
-                  AI Rating
-                </div>
-             </div>
-        </LockedFeature>
-
-        {/* B. Intelligence Panel (Moonshot + Health + Momentum) */}
-        <LockedFeature isLocked={isTeaserMode} onUnlock={onUnlock} label="Alpha Intelligence" className="xl:col-span-5 bg-surface rounded-sm border border-border grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border relative">
-            {/* Moonshot Score */}
-            <div 
-              className="p-6 relative group z-10 hover:z-20 flex flex-col items-center text-center justify-start h-48"
-            >
-                <div className="relative z-10 w-full flex flex-col items-center">
-                    <div className="relative flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-secondary mb-3 cursor-help group/tooltip">
-                      <Rocket className="w-4 h-4" />
-                      Moonshot Score
-                      {/* Custom Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-primary text-white shadow-sm rounded-sm text-center opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
-                         <p className="text-[10px] normal-case font-medium leading-relaxed">
-                           AI-derived score (0-100) analyzing growth potential, risk factors, and competitive advantage.
-                         </p>
-                         <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-primary"></div>
-                      </div>
-                    </div>
-                    <div className={`text-3xl xl:text-4xl font-mono font-medium ${scoreColor}`}>
-                      {report.rocketScore}<span className="text-lg text-secondary">/100</span>
-                    </div>
-                    <ExpandableText text={report.rocketReason} />
+                <div className="text-[10px] text-secondary font-medium px-3 py-1 rounded-full bg-tertiary/10 border border-border">
+                  AI Confidence: High
                 </div>
             </div>
-
-            {/* Financial Health */}
-            <div className="p-6 relative group z-10 hover:z-20 flex flex-col items-center text-center justify-start h-48">
-                <div className="relative z-10 w-full flex flex-col items-center">
-                    <div className="relative flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-secondary mb-3 cursor-help group/tooltip">
-                      <ShieldCheck className="w-4 h-4" />
-                      Financial Health
-                      {/* Custom Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-primary text-white shadow-sm rounded-sm text-center opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
-                         <p className="text-[10px] normal-case font-medium leading-relaxed">
-                           Solvency and liquidity score (0-100) based on balance sheet strength.
-                         </p>
-                         <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-primary"></div>
-                      </div>
-                    </div>
-                    <div className={`text-3xl xl:text-4xl font-mono font-medium ${healthColor}`}>
-                      {report.financialHealthScore || 'N/A'}
-                    </div>
-                    <ExpandableText text={report.financialHealthReason || 'Based on balance sheet strength.'} />
-                </div>
-            </div>
-
-            {/* Momentum Score */}
-            <div className="p-6 relative group z-10 hover:z-20 flex flex-col items-center text-center justify-start h-48">
-                <div className="relative z-10 w-full flex flex-col items-center">
-                    <div className="relative flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-secondary mb-3 cursor-help group/tooltip">
-                      <Activity className="w-4 h-4" />
-                      Momentum
-                      {/* Custom Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-primary border border-transparent shadow-xl rounded-sm text-center opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
-                         <p className="text-[10px] normal-case font-medium text-white leading-relaxed">
-                           Technical momentum indicator. &gt;70 Overbought, &lt;30 Oversold.
-                         </p>
-                         <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-primary"></div>
-                      </div>
-                    </div>
-                    <div className={`text-3xl xl:text-4xl font-mono font-bold ${momentumColor}`}>
-                      {momentumScore}
-                    </div>
-                    <div className={`text-xs font-bold uppercase tracking-wider mt-1 px-2 py-0.5 rounded-sm bg-tertiary/10 border border-border ${momentumColor}`}>
-                      {momentumLabel}
-                    </div>
-                    <div className="mt-2 text-[10px] text-secondary leading-tight line-clamp-2">
-                      {report.momentumAnalysis?.context || 'RSI based on recent price action.'}
-                    </div>
-                </div>
-            </div>
-        </LockedFeature>
-
-        {/* C. Valuation Panel (Price + Target) */}
-        <div className="xl:col-span-5 bg-surface rounded-sm border border-border grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
             {/* Current Price */}
-            <div className="p-6 relative group hover:bg-tertiary/5 transition-colors flex flex-col items-center text-center justify-center h-48">
+            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
-                   <DollarSign className="w-4 h-4" />
-                   Current Price
+                   <DollarSign className="w-4 h-4" /> Current Price
                 </div>
-                <div className="text-3xl xl:text-4xl font-mono font-bold text-primary">
+                <div className="text-3xl font-mono font-bold text-primary mb-1">
                    {report.currentPrice}
                 </div>
-                <div className={`text-sm font-bold mt-1 px-3 py-1 rounded-full bg-tertiary/10 border border-border ${priceColor}`}>
+                <div className={`text-sm font-bold px-3 py-1 rounded-full bg-surface border border-border ${priceColor}`}>
                    {report.priceChange} Today
                 </div>
             </div>
+        </div>
 
-            {/* Target Price - LOCKED IN TEASER */}
-            <LockedFeature isLocked={isTeaserMode} onUnlock={onUnlock} label="Price Targets" className="relative group hover:bg-tertiary/5 transition-colors flex flex-col items-center text-center justify-center h-48 p-6">
+        {/* COLUMN 2: THE POTENTIAL (Moonshot Score & Target) - Locked */}
+        <LockedFeature isLocked={isTeaserMode} onUnlock={onUnlock} label="Growth Potential" className="bg-surface rounded-sm border border-border flex flex-col divide-y divide-border h-full">
+            {/* Moonshot Score */}
+            <div className="p-8 flex-1 flex flex-col items-center justify-center text-center relative group">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-4">
+                   <Rocket className="w-4 h-4" /> Moonshot Score
+                </div>
+                <div className={`text-6xl font-mono font-medium ${scoreColor} mb-4`}>
+                   {report.rocketScore}
+                </div>
+                <div className="w-full max-w-[200px]">
+                   <ExpandableText text={report.rocketReason} />
+                </div>
+            </div>
+            {/* Target Price */}
+            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
-                   <Goal className="w-4 h-4" />
-                   1Y Target Price
+                   <Goal className="w-4 h-4" /> 1Y Target
                 </div>
-                <div className="flex items-center justify-center gap-2 relative">
-                   <div className="text-3xl xl:text-4xl font-mono font-bold text-primary">
-                      {report.priceTarget || 'N/A'}
-                   </div>
-                   {report.priceTargetModel && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setShowValuation(!showValuation); }}
-                        className="p-1.5 rounded-full bg-tertiary/10 border border-border text-secondary hover:text-primary hover:bg-primary/10 hover:border-primary transition-all"
-                        title="View Valuation Logic"
-                      >
-                        <Calculator className="w-3 h-3" />
-                      </button>
-                   )}
+                <div className="text-3xl font-mono font-bold text-primary mb-1">
+                   {report.priceTarget || 'N/A'}
                 </div>
-
-                {/* Valuation Popover */}
-                {showValuation && report.priceTargetModel && (
-                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-surface border border-border shadow-xl rounded-sm p-4 z-50 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-between items-center mb-3 border-b border-border pb-2">
-                         <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">Valuation Model</span>
-                         <button onClick={() => setShowValuation(false)}><X className="w-3 h-3 text-secondary hover:text-primary" /></button>
-                      </div>
-                      <div className="flex items-center justify-between font-mono text-sm mb-2 bg-tertiary/10 p-2 rounded-sm border border-border">
-                         <div className="flex flex-col items-start">
-                            <span className="text-[10px] text-secondary mb-1">Est. EPS</span>
-                            <span className="text-primary font-bold">{report.priceTargetModel.estimatedEPS}</span>
-                         </div>
-                         <span className="text-tertiary">×</span>
-                         <div className="flex flex-col items-center">
-                            <span className="text-[10px] text-secondary mb-1">Target P/E</span>
-                            <span className="text-primary font-bold">{report.priceTargetModel.targetPE}</span>
-                         </div>
-                         <span className="text-tertiary">=</span>
-                         <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-secondary mb-1">Target</span>
-                            <span className="text-green-600 font-bold">{report.priceTarget}</span>
-                         </div>
-                      </div>
-                      <div className="mb-2 flex justify-between items-center px-1">
-                         <span className="text-[10px] text-secondary uppercase">Growth Rate</span>
-                         <span className="text-xs font-mono text-emerald-600">{report.priceTargetModel.growthRate}</span>
-                      </div>
-                      <p className="text-[10px] text-secondary leading-relaxed text-left mt-2 bg-tertiary/10 p-2 rounded-sm border border-border">
-                        {report.priceTargetModel.logic}
-                      </p>
-                   </div>
-                )}
-
                 {targetUpside !== null && (
-                  <div className={`text-sm font-bold mt-1 px-3 py-1 rounded-full bg-tertiary/10 border border-border ${upsideColor}`}>
-                     {targetUpside > 0 ? '+' : ''}{targetUpside.toFixed(1)}% {targetUpside > 0 ? 'Upside' : 'Downside'}
+                  <div className={`text-sm font-bold px-3 py-1 rounded-full bg-surface border border-border ${upsideColor}`}>
+                     {targetUpside > 0 ? '+' : ''}{targetUpside.toFixed(1)}% Upside
                   </div>
                 )}
-                {!targetUpside && report.priceTargetRange && (
-                   <div className="text-xs text-secondary mt-2 font-mono">
-                      Range: {report.priceTargetRange}
-                   </div>
-                )}
-            </LockedFeature>
-        </div>
+            </div>
+        </LockedFeature>
+
+        {/* COLUMN 3: THE FUNDAMENTALS (Health & Momentum) - Locked */}
+        <LockedFeature isLocked={isTeaserMode} onUnlock={onUnlock} label="Risk Profile" className="bg-surface rounded-sm border border-border flex flex-col divide-y divide-border h-full">
+            {/* Financial Health */}
+            <div className="p-8 flex-1 flex flex-col items-center justify-center text-center relative group">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-4">
+                   <ShieldCheck className="w-4 h-4" /> Financial Health
+                </div>
+                <div className={`text-5xl font-mono font-medium ${healthColor} mb-4`}>
+                   {report.financialHealthScore || 'N/A'}
+                </div>
+                <div className="w-full max-w-[200px]">
+                   <ExpandableText text={report.financialHealthReason || 'Based on balance sheet strength.'} />
+                </div>
+            </div>
+            {/* Momentum */}
+            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px]">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
+                   <Activity className="w-4 h-4" /> Momentum
+                </div>
+                <div className={`text-3xl font-mono font-bold ${momentumColor} mb-1`}>
+                   {momentumScore}
+                </div>
+                <div className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-surface border border-border ${momentumColor}`}>
+                   {momentumLabel}
+                </div>
+            </div>
+        </LockedFeature>
 
       </div>
 
