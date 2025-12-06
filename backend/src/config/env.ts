@@ -28,6 +28,7 @@ export const config = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   resendApiKey: process.env.RESEND_API_KEY || '',
   mailFrom: process.env.MAIL_FROM || 'no-reply@example.com',
+  finnhubApiKey: process.env.FINNHUB_API_KEY || '',
   geminiAnalyzeModel: process.env.GEMINI_ANALYZE_MODEL || GEMINI_DEFAULT_MODEL,
   geminiChatModel: process.env.GEMINI_CHAT_MODEL || GEMINI_DEFAULT_MODEL,
   nodeEnv,

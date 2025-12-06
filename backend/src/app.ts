@@ -11,6 +11,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { reportsRouter } from './routes/reports.js';
 import { bookmarksRouter } from './routes/bookmarks.js';
 import { conversationRouter } from './routes/conversation.js';
+import { marketDataRouter } from './routes/marketData.js';
 import { correlationIdMiddleware } from './middleware/correlationId.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -48,6 +49,7 @@ export const createApp = () => {
   app.use('/api', reportsRouter);
   app.use('/api', bookmarksRouter);
   app.use('/api', conversationRouter);
+  app.use('/api', marketDataRouter);
   app.use('/api', aiRouter);
 
   // 404 handler
