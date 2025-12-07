@@ -24,6 +24,7 @@ export const hashToken = (token: string) => {
 export const cookieOpts = {
   httpOnly: true,
   sameSite: 'lax' as const,
-  secure: false,
-  path: '/'
+  secure: config.nodeEnv === 'production',
+  path: '/',
+  domain: config.cookieDomain
 };

@@ -30,11 +30,12 @@ The backend is an Express application adapted for Vercel Serverless Functions.
 
     - `DATABASE_URL`: Your PostgreSQL connection string (e.g., from Supabase or Neon).
     - `SESSION_SECRET`: A long random string.
-    - `ALLOWED_ORIGINS`: The URL of your frontend (e.g., `https://ultramagnus-frontend.vercel.app`). You can add localhost for dev: `https://ultramagnus-frontend.vercel.app,http://localhost:5173`.
+    - `ALLOWED_ORIGINS`: `https://alphaflux.app,https://www.alphaflux.app`.
     - `GOOGLE_CLIENT_ID`: Google OAuth Client ID.
     - `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret.
-    - `GOOGLE_REDIRECT_URI`: `https://<your-backend-url>/api/auth/google/callback`.
-    - `FRONTEND_URL`: `https://<your-frontend-url>`.
+    - `GOOGLE_REDIRECT_URI`: `https://api.alphaflux.app/api/auth/google/callback`.
+    - `FRONTEND_URL`: `https://alphaflux.app`.
+    - `COOKIE_DOMAIN`: `.alphaflux.app` (Important: Note the leading dot).
     - `RESEND_API_KEY`: API key for Resend (email).
     - `MAIL_FROM`: Sender email address.
     - `FINNHUB_API_KEY`: API key for Finnhub.
@@ -66,7 +67,7 @@ The frontend is a Vite + React application.
 3.  **Environment Variables:**
     Add the following environment variables:
 
-    - `VITE_API_BASE_URL`: The URL of your deployed backend (e.g., `https://ultramagnus-backend.vercel.app`). **No trailing slash.**
+    - `VITE_API_BASE_URL`: `https://api.alphaflux.app`. **No trailing slash.**
     - `VITE_SUPABASE_URL`: Your Supabase Project URL.
     - `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key.
 
@@ -83,8 +84,35 @@ The frontend is a Vite + React application.
 
 2.  **Update Google OAuth:**
     - Go to Google Cloud Console.
-    - Add the backend callback URL (`https://<your-backend-url>/api/auth/google/callback`) to "Authorized redirect URIs".
+    - Add the backend callback URL (`https://api.alphaflux.app/api/auth/google/callback`) to "Authorized redirect URIs".
     - Add the frontend URL to "Authorized JavaScript origins" if needed.
+
+## 4. Domain Configuration (Crucial for Cookies)
+
+To ensure login works correctly, you must configure your custom domain in Vercel:
+
+1.  **Frontend Project:**
+    - Go to Settings -> Domains.
+    - Add `alphaflux.app` (and `www.alphaflux.app`).
+
+2.  **Backend Project:**
+    - Go to Settings -> Domains.
+    - Add `api.alphaflux.app`.
+
+This setup ensures both sites share the root domain `alphaflux.app`, allowing cookies to be shared securely.
+
+## Troubleshooting
+
+### Google Sign-In Error: "redirect_uri_mismatch"
+This means the URI sent by your backend does not match what is in Google Cloud Console.
+1.  **Check Vercel Backend Env Var:** Ensure `GOOGLE_REDIRECT_URI` is exactly `https://api.alphaflux.app/api/auth/google/callback`.
+2.  **Check Google Cloud Console:** Ensure the **exact same URL** is added to "Authorized redirect URIs".
+3.  **Redeploy Backend:** If you changed the Env Var, you MUST redeploy the backend for it to take effect.
+
+### API Error: 404 or 405 on Frontend
+This means the frontend is not pointing to the backend correctly.
+1.  **Check Vercel Frontend Env Var:** Ensure `VITE_API_BASE_URL` is `https://api.alphaflux.app` (no trailing slash).
+2.  **Redeploy Frontend:** Vite bakes env vars at build time. You MUST redeploy the frontend after changing this variable.
 
 ## Local Development
 
