@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
     "moduleResolution": "bundler",
     "module": "ESNext",
     "target": "ES2020",
@@ -11,6 +10,6 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "api/**/*"],
   "exclude": ["node_modules", "dist"]
 }
