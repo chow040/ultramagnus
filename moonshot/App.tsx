@@ -7,6 +7,7 @@ import AuthModal from './components/AuthModal';
 import AccountSettingsPage from './components/AccountSettingsPage';
 import LandingPage from './components/LandingPage';
 import { TickerCommandCenterMockup } from './components/TickerCommandCenterMockup';
+import FinancialsMock from './components/FinancialsMock';
 
 import { streamEquityReport } from './services/geminiService';
 import { EquityReport, LoadingState, SavedReportItem, UserProfile, AnalysisSession, DashboardView, DashboardError } from './types';
@@ -339,6 +340,11 @@ const profileFromResponse = (payload: any): UserProfile | null => {
 };
 
 function App() {
+  const isFinancialsMock = typeof window !== 'undefined' && window.location.search.includes('financialsMock');
+  if (isFinancialsMock) {
+    return <FinancialsMock />;
+  }
+
   const [ticker, setTicker] = useState('');
 
   // View State

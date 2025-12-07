@@ -6,13 +6,14 @@ export const marketDataRouter = Router();
 
 marketDataRouter.get('/marketdata/:symbol', requireAuth, async (req, res) => {
   const { symbol } = req.params;
+  const freq = req.query.freq === 'quarterly' ? 'quarterly' : 'annual';
 
   if (!symbol) {
     return res.status(400).json({ error: 'symbol is required' });
   }
 
   try {
-    const snapshot = await fetchEquitySnapshot(symbol.toUpperCase());
+    const snapshot = await fetchEquitySnapshot(symbol.toUpperCase(), freq);
     return res.json(snapshot);
   } catch (err: any) {
     const status = err?.message?.includes('FINNHUB_API_KEY') ? 503 : 502;

@@ -1503,6 +1503,83 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
         </LockedFeature>
       )}
 
+      {/* 2.5 Financial Modeling (DCF) */}
+      {/* 2.5 Financial Modeling (AI Assessment) */}
+      {report.aiAssessment && (
+      <LockedFeature label="Financial Modeling" isLocked={isTeaserMode} onUnlock={onUnlock}>
+        <div className="bg-surface rounded-sm border border-border p-6">
+           <div className="flex justify-between items-center mb-6">
+              <div>
+                 <h3 className="text-lg font-bold text-primary">Valuation Model: {report.aiAssessment.method.replace(/_/g, ' ').toUpperCase()}</h3>
+                 <p className="text-xs text-secondary mt-1">AI-Generated Assessment • {report.aiAssessment.valuation.notes}</p>
+              </div>
+              <div className="text-right">
+                 <div className="text-2xl font-mono font-bold text-primary">
+                    {report.aiAssessment.valuation.currency} {report.aiAssessment.valuation.intrinsicValue.toFixed(2)}
+                 </div>
+                 <div className={`text-xs font-bold ${report.aiAssessment.valuation.upsidePct > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    Implied Upside: {report.aiAssessment.valuation.upsidePct > 0 ? '+' : ''}{report.aiAssessment.valuation.upsidePct.toFixed(1)}%
+                 </div>
+              </div>
+           </div>
+
+           {/* Inputs Grid */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                 <h4 className="text-xs font-bold text-secondary uppercase tracking-widest mb-4">Model Inputs</h4>
+                 <table className="w-full text-xs">
+                    <thead>
+                       <tr className="border-b border-border text-secondary">
+                          <th className="text-left py-2 font-medium">Metric</th>
+                          <th className="text-right py-2 font-medium">Value</th>
+                          <th className="text-right py-2 font-medium">Note</th>
+                       </tr>
+                    </thead>
+                    <tbody className="font-mono">
+                       {report.aiAssessment.valuation.inputs.map((input, i) => (
+                          <tr key={i} className="border-b border-border/50">
+                             <td className="py-2 text-secondary capitalize">{input.name.replace(/_/g, ' ')}</td>
+                             <td className="py-2 text-right font-bold text-primary">
+                                {input.value} <span className="text-[10px] text-secondary font-normal">{input.unit}</span>
+                             </td>
+                             <td className="py-2 text-right text-secondary italic text-[10px]">{input.note}</td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+              
+              <div className="flex flex-col justify-center">
+                 <div className="bg-tertiary/5 p-4 rounded-sm border border-border">
+                    <h4 className="text-xs font-bold text-secondary uppercase tracking-widest mb-3">Thesis Highlights</h4>
+                    <ul className="space-y-2">
+                       {report.aiAssessment.thesis.bullets.map((bullet, i) => (
+                          <li key={i} className="flex gap-2 text-xs text-primary leading-relaxed">
+                             <span className="text-emerald-500 font-bold">•</span>
+                             {bullet}
+                          </li>
+                       ))}
+                    </ul>
+                 </div>
+                 
+                 {report.aiAssessment.risks && report.aiAssessment.risks.length > 0 && (
+                    <div className="mt-4">
+                       <h4 className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">Key Risks</h4>
+                       <div className="flex flex-wrap gap-2">
+                          {report.aiAssessment.risks.map((risk, i) => (
+                             <span key={i} className="px-2 py-1 bg-red-50 text-red-700 border border-red-100 rounded-sm text-[10px] font-bold">
+                                {risk}
+                             </span>
+                          ))}
+                       </div>
+                    </div>
+                 )}
+              </div>
+           </div>
+        </div>
+      </LockedFeature>
+      )}
+
       {/* 3. Detailed Stats Grid (REFACTORED: 3-Panel Dashboard) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface rounded-sm p-6 border border-border">
          {/* 1. Valuation Metrics */}

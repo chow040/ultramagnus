@@ -142,6 +142,36 @@ export interface AnalysisHistory {
   changeRationale: string[]; // ["Missed earnings", "Guidance cut"]
 }
 
+export interface ValuationInput {
+  name: string;
+  value: number;
+  unit: string;
+  note: string;
+}
+
+export interface ValuationModel {
+  currency: string;
+  currentPrice: number;
+  intrinsicValue: number;
+  upsidePct: number;
+  inputs: ValuationInput[];
+  notes: string;
+}
+
+export interface AiAssessment {
+  schemaVersion: string;
+  method: string;
+  thesis: {
+    bullets: string[];
+  };
+  valuation: ValuationModel;
+  recommendation: {
+    rating: "BUY" | "HOLD" | "SELL";
+    rationale: string;
+  };
+  risks: string[];
+}
+
 export interface EquityReport {
   companyName: string;
   ticker: string;
@@ -184,6 +214,9 @@ export interface EquityReport {
   // Value Add: Thesis Evolution
   history?: AnalysisHistory;
   
+  // New AI Assessment Schema
+  aiAssessment?: AiAssessment;
+
   // Analysis
   shortTermFactors: FactorAnalysis;
   longTermFactors: FactorAnalysis;

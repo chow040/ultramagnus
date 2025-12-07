@@ -15,14 +15,14 @@ export interface EquitySnapshot {
   financials: Awaited<ReturnType<typeof getFinancialsReported>>;
 }
 
-export const fetchEquitySnapshot = async (symbol: string): Promise<EquitySnapshot> => {
+export const fetchEquitySnapshot = async (symbol: string, freq: 'annual' | 'quarterly' = 'annual'): Promise<EquitySnapshot> => {
   try {
     const [quote, profile, metrics, peers, financials] = await Promise.all([
       getQuote(symbol),
       getProfile(symbol),
       getBasicFinancials(symbol),
       getPeers(symbol),
-      getFinancialsReported(symbol, 'annual')
+      getFinancialsReported(symbol, freq)
     ]);
 
     return { quote, profile, metrics, peers, financials };
