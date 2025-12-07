@@ -7,7 +7,7 @@ This document outlines the plan to migrate the existing "AI Analyst" logic from 
 
 ## 2. Objectives
 *   **Decouple Logic**: Separate prompt management, model interaction, and data fetching from the HTTP route handler.
-*   **Enhance Orchestration**: Use LangChain's **pipelines** (chains) or `Agent` classes for better control over the analysis workflow.
+*   **Enhance Orchestration**: Use **LangGraph** to manage the state and workflow between multiple specialized agents.
 *   **Maintain Compatibility**: Ensure the output JSON structure remains identical to support the existing frontend.
 *   **Streaming Execution**: The entire process must stream data to the client to avoid Vercel server timeouts.
 *   **Safe Migration**: Use a feature flag to toggle between the legacy and new implementations.
@@ -15,74 +15,89 @@ This document outlines the plan to migrate the existing "AI Analyst" logic from 
 ## 3. Architecture
 
 ### 3.1 Directory Structure (`moonshot_be/src/langchain/analyst/`)
-*   `marketAnalyst.ts`: The initial agent that performs a broad market assessment using the existing prompt and search capabilities. Contains the `Report` type definition and the **prompt definition**.
-*   `equityAnalyst.ts`: The secondary agent that takes the `marketAnalyst` output, fetches hard financial data, and performs a deep-dive equity evaluation to refine the report.
+*   `graph.ts`: Defines the LangGraph `StateGraph`, the `AgentState` interface, and the main entry point `runAnalystGraph`.
+*   `nodes/marketAnalyst.ts`: The node that performs broad market assessment using Google Search.
+*   `nodes/equityAnalyst.ts`: The node that refines the report using hard financial data.
+*   `tools/financialDataTool.ts`: A tool to fetch structured financial data.
 
-### 3.2 Data Flow
-1.  **Input**: Ticker symbol (string).
-2.  **Step 1: Market Assessment (`marketAnalyst`)**:
-    *   Run `marketAnalyst` with the legacy prompt (converted to LangChain).
-    *   Model uses Google Search (if available) to gather news, sentiment, and broad data.
-    *   **Output**: Draft `Report` JSON.
-3.  **Step 2: Equity Evaluation (`equityAnalyst`)**:
-    *   Input: Draft `Report` + Ticker.
-    *   **Context Gathering**: Fetch structured financial data (last 4 quarters) using `tools/financialDataTool.ts`.
-    *   **Refinement**: `equityAnalyst` reviews the draft report against the hard financial data.
-    *   **Update**: Recalculate scores (Rocket, Financial Health) and validate claims.
-4.  **Return**: Final Refined `Report` object.
+### 3.2 Data Flow (The Graph)
+The workflow will be modeled as a state machine:
+
+1.  **State**: `AgentState` contains:
+    *   `ticker`: string
+    *   `report`: Partial<Report> (The evolving report object)
+    *   `financialData`: any (Raw data fetched for validation)
+    *   `messages`: BaseMessage[] (For internal reasoning logs)
+
+2.  **Nodes**:
+    *   **`market_analyst`**:
+        *   Input: `ticker`
+        *   Action: Uses Google Search to generate the initial `draft_report`.
+        *   Output: Updates `report` in state.
+    *   **`fetch_financials`**:
+        *   Input: `ticker`
+        *   Action: Fetches hard data (last 4 quarters) via API.
+        *   Output: Updates `financialData` in state.
+    *   **`equity_analyst`**:
+        *   Input: `report` (draft) + `financialData`
+        *   Action: Reviews the draft against hard data. Recalculates scores.
+        *   Output: Updates `report` (final).
+
+3.  **Edges**:
+    *   `START` -> `market_analyst`
+    *   `market_analyst` -> `fetch_financials`
+    *   `fetch_financials` -> `equity_analyst`
+    *   `equity_analyst` -> `END`
 
 ## 4. Implementation Plan
 
 ### Phase 1: Foundation & Types
-1.  **Extract Types**: Analyze `REPORT_PROMPT` in `aiAnalysis.ts` and create strict TypeScript interfaces directly in `src/langchain/analyst/marketAnalyst.ts`.
-2.  **Port Prompt**: Move the prompt text to `src/langchain/analyst/marketAnalyst.ts` as a **simple constant**.
+1.  **Install Dependencies**: Add `@langchain/langgraph`.
+2.  **Extract Types**: Analyze `REPORT_PROMPT` in `aiAnalysis.ts` and create strict TypeScript interfaces in `src/langchain/analyst/types.ts`.
+3.  **Port Prompt**: Move the prompt text to `src/langchain/analyst/prompts.ts`.
 
 ### Phase 2: Analyst Implementation
 1.  **Implement `client.ts`**:
-    *   Implement `getLLMClient` to return a configured `ChatGoogleGenerativeAI` (or similar) instance.
-    *   Ensure API keys are loaded from environment variables.
-2.  **Implement `marketAnalyst.ts`**:
-    *   Import `getLLMClient` from `../client.ts`.
-    *   Construct the **processing pipeline** (chain) that connects the prompt to the model.
-    *   **Grounding**: Configure the model to use Gemini's built-in Google Search by passing `tools: [{ googleSearch: {} }]` (supported by `@langchain/google-genai`).
-    *   Use the existing "AI Analyst" prompt to generate the initial JSON report.
-3.  **Implement `equityAnalyst.ts`**:
-    *   Create a new prompt that instructs the model to "Review and Refine" the provided report using the provided financial data.
-    *   Use `tools/financialDataTool.ts` to fetch actual data.
-    *   Construct a chain that takes `{ ticker, draftReport }` as input and outputs the final `Report`.
+    *   Implement `getLLMClient` to return a configured `ChatGoogleGenerativeAI` instance.
+2.  **Implement Nodes**:
+    *   `marketAnalyst.ts`: A function that calls the LLM with search tools and returns the partial state update.
+    *   `equityAnalyst.ts`: A function that takes the state, formats a "Review and Refine" prompt, and calls the LLM.
+3.  **Implement Graph (`graph.ts`)**:
+    *   Define `AgentState`.
+    *   Initialize `StateGraph<AgentState>`.
+    *   Add nodes and edges.
+    *   Compile the graph.
 4.  **Orchestration**:
-    *   In `marketAnalyst.ts` (or a new `index.ts`), export the main `generateEquityReport` function.
-    *   This function should be a **generator** or return a **stream** that yields chunks from `marketAnalyst` and then `equityAnalyst` to ensure the client receives data immediately.
+    *   Export `generateEquityReport` which invokes the graph.
+    *   **Streaming**: Use `graph.stream()` to yield events. This allows the frontend to see "Market Analysis Complete..." before the final JSON arrives.
 
 ### Phase 3: Integration
-1.  **Feature Flag**: Add `LANGCHAIN_ANALYST_ENABLED` to `src/config/appConfig.ts` (default `false`).
+1.  **Feature Flag**: Add `LANGCHAIN_ANALYST_ENABLED` to `src/config/appConfig.ts`.
 2.  **Route Update**: Modify `src/routes/aiAnalysis.ts`:
-    *   Import `generateEquityReport` from `../langchain/analyst/marketAnalyst.ts`.
-    *   Add a conditional check for the feature flag.
-    *   If enabled, await the LangChain result and stream/send it.
-    *   **Streaming**: **CRITICAL**. To prevent Vercel server timeouts, the response **must be streamed**. The orchestration function should yield chunks (e.g., progress updates or partial tokens) to keep the HTTP connection alive throughout the multi-step process.
+    *   Import `generateEquityReport`.
+    *   If enabled, stream the graph events.
+    *   **Streaming Response**: The route must handle the stream of graph events and send Server-Sent Events (SSE) or a streaming JSON response to the client.
 
 ### Phase 4: Verification
-1.  **Unit Test**: Create `scripts/test-langchain-analyst.ts` to run the analyst in isolation.
-2.  **Comparison**: Run both implementations for the same ticker and compare the JSON structure and data quality.
+1.  **Unit Test**: Create `scripts/test-langchain-graph.ts`.
+2.  **Comparison**: Run both implementations for the same ticker.
 
 ## 5. Checklist
 
 - [ ] **Scaffolding**
-    - [ ] Create `src/langchain/analyst/marketAnalyst.ts` (types, prompt, initial chain).
-    - [ ] Create `src/langchain/analyst/equityAnalyst.ts` (refinement prompt, financial tool integration).
+    - [ ] Install `@langchain/langgraph`.
+    - [ ] Create `src/langchain/analyst/types.ts` (Report interface).
+    - [ ] Create `src/langchain/analyst/graph.ts` (State definition).
 
-- [ ] **Implementation**
-    - [ ] Define `Report` interface in `marketAnalyst.ts`.
-    - [ ] Implement `marketAnalyst` chain (Legacy Prompt -> JSON).
-    - [ ] Implement `equityAnalyst` chain (Draft JSON + Financials -> Final JSON).
-    - [ ] Wire up `financialDataTool` in `equityAnalyst`.
-    - [ ] Chain them together in `generateEquityReport`.
+- [ ] **Nodes & Tools**
+    - [ ] Implement `market_analyst` node.
+    - [ ] Implement `fetch_financials` node (mocked initially or real).
+    - [ ] Implement `equity_analyst` node.
+
+- [ ] **Graph Assembly**
+    - [ ] Wire nodes in `graph.ts`.
+    - [ ] Verify `graph.stream()` output format.
 
 - [ ] **Integration**
-    - [ ] Add `LANGCHAIN_ANALYST_ENABLED` env var/config.
-    - [ ] Update `POST /ai/stream-report` to use the new flow when enabled.
+    - [ ] Update `POST /ai/stream-report` to consume the graph stream.
 
-- [ ] **Testing**
-    - [ ] Verify JSON output validity.
-    - [ ] Verify error handling (e.g., invalid ticker).
