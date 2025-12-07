@@ -22,8 +22,8 @@ Reference PRD: `docs/Smart Updates/streaming-prd.md`
         - Flush headers immediately after creating the stream so the client gets TTFT and avoids hanging connections.
         - Track whether any chunk was written; return `502` if the stream produced zero bytes to surface silent provider failures.
         - Log provider/model/request metadata on both success and failure for root-cause analysis.
-        - All routes consolidated into `src/routes/ai.ts`; no duplicate controllers.
-- **Controller Behavior (implementation outline in `src/routes/ai.ts`):**
+        - Streaming routes live in `src/routes/aiAnalysis.ts` (report) and `src/routes/aiChat.ts` (chat), sharing helpers in `src/routes/aiShared.ts`.
+- **Controller Behavior (implementation outline in `src/routes/aiAnalysis.ts` and `src/routes/aiChat.ts`):**
     - Set headers early: `Content-Type: text/plain; charset=utf-8`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`, `Transfer-Encoding: chunked`.
     - Construct Gemini messages with a single leading `user` message containing schema/system prompt in `contents`, followed by normalized history (merge consecutive same-role turns).
     - Start stream via SDK; immediately `res.flushHeaders()`; stream with `for await` to `res.write(chunk)`, increment `bytesWritten`.
@@ -115,7 +115,7 @@ No schema changes required for the streaming mechanism itself. The persistence e
 
 ### Phase 1: Backend Streaming Foundation
 1.  Install `ai` and `@ai-sdk/openai` (or similar) if not present, or implement raw `res.write` logic.
-2.  **Merged**: Stream controllers now live in `src/routes/ai.ts`; `/api/ai/stream-report` replaces `/api/aiassessment`.
+2.  **Merged**: Stream controllers now live in `src/routes/aiAnalysis.ts` (report) and `src/routes/aiChat.ts` (chat); `/api/ai/stream-report` replaces `/api/aiassessment`.
 3.  Implement `streamChat` controller and ensure role normalization/merging for Gemini sequencing.
 4.  Add structured logging (sessionId/requestId, ticker/reportId, model, duration, bytesWritten, success/error) to `app.log` and `ai_failures.jsonl`.
 

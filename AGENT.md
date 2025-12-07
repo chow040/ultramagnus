@@ -7,7 +7,7 @@ This document serves as the baseline context for AI agents working on the **Ultr
 
 ## 2. Technology Stack
 
-### 2.1 Frontend (`/moonshot`)
+### 2.1 Frontend (`/moonshot_fe`)
 *   **Framework:** React 19 (Vite)
 *   **Language:** TypeScript
 *   **Styling:** Tailwind CSS
@@ -17,7 +17,7 @@ This document serves as the baseline context for AI agents working on the **Ultr
 *   **Icons:** Lucide React
 *   **AI Integration:** `@google/genai` (Direct client-side usage for some features)
 
-### 2.2 Backend (`/backend`)
+### 2.2 Backend (`/moonshot_be`)
 *   **Runtime:** Node.js
 *   **Framework:** Express.js
 *   **Language:** TypeScript (`ts-node-esm`)
@@ -35,7 +35,7 @@ This document serves as the baseline context for AI agents working on the **Ultr
 
 ```
 /
-├── backend/                # Express.js Backend
+├── moonshot_be/            # Express.js Backend
 │   ├── drizzle/            # Database migrations (SQL)
 │   ├── src/
 │   │   ├── config/         # Environment & App Config
@@ -49,7 +49,7 @@ This document serves as the baseline context for AI agents working on the **Ultr
 │   ├── drizzle.config.ts   # Drizzle Configuration
 │   └── package.json
 │
-├── moonshot/               # React Frontend
+├── moonshot_fe/            # React Frontend
 │   ├── src/
 │   │   ├── components/     # Reusable UI Components
 │   │   ├── lib/            # External Library Clients (Supabase, etc.)

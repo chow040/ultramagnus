@@ -12,11 +12,11 @@
 - Server startup (`src/server.ts`) now logs readiness and captures `unhandledRejection` / `uncaughtException` events.
 
 ## Configuration
-- New env vars: `LOG_LEVEL` (defaults to `debug` outside prod) and `SERVICE_NAME` (defaults to `backend-bff`). See `backend/.env.example` for usage.
+- New env vars: `LOG_LEVEL` (defaults to `debug` outside prod) and `SERVICE_NAME` (defaults to `moonshot-be`). See `moonshot_be/.env.example` for usage.
 - Request/response logs can be tailed via stdout; pipe to your log shipper of choice for aggregation.
 
 ## Verification
-1. `cd backend && npm run dev` – invoke a few API endpoints and observe JSON logs in the terminal. Each entry should include `correlationId`, `path`, and `userId` (post-auth).
+1. `cd moonshot_be && npm run dev` – invoke a few API endpoints and observe JSON logs in the terminal. Each entry should include `correlationId`, `path`, and `userId` (post-auth).
 2. Hitting `/health` with or without `X-Request-ID` should echo the ID back in the response header and logs.
 3. Trigger auth/AI errors to confirm `errorHandler` emits structured payloads plus correlation IDs.
 

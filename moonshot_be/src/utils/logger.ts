@@ -24,7 +24,7 @@ export const logger = createLogger({
   transports: [
     new transports.Console({ stderrLevels: ['error'] }),
     new transports.File({
-      // Write logs to backend/logs
+      // Write logs to moonshot_be/logs
       filename: path.join(logDir, 'app.log'),
       level: 'info',
       maxsize: 5 * 1024 * 1024, // 5 MB

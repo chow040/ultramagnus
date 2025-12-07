@@ -15,7 +15,7 @@ Reference PRD: `docs/AI conversion persistance/report-conversation-history-prd.m
     - Manages message persistence, retrieval, and summarization triggers.
 - **Routes:**
     - `src/routes/conversation.ts`: Endpoints for fetching and appending chat messages.
-    - `src/routes/ai.ts`: Extended to persist chat turns during generation.
+    - `src/routes/aiChat.ts`: Extended to persist chat turns during generation.
 - **Worker:**
     - Background job for summarization and purging old messages.
 

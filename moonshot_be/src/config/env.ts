@@ -33,5 +33,5 @@ export const config = {
   geminiChatModel: process.env.GEMINI_CHAT_MODEL || GEMINI_DEFAULT_MODEL,
   nodeEnv,
   logLevel: defaultLogLevel,
-  serviceName: process.env.SERVICE_NAME || 'backend-bff'
+  serviceName: process.env.SERVICE_NAME || 'moonshot-be'
 };

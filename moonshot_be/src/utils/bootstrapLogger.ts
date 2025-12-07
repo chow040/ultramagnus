@@ -4,7 +4,7 @@ export const bootstrapLog = (level: BootstrapLevel, message: string, meta: Recor
   const payload = {
     timestamp: new Date().toISOString(),
     level,
-    service: process.env.SERVICE_NAME || 'backend-bff',
+    service: process.env.SERVICE_NAME || 'moonshot-be',
     message,
     ...meta
   };

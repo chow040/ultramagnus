@@ -4,7 +4,8 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { authRouter } from './routes/auth.js';
-import { aiRouter } from './routes/ai.js';
+import { aiAnalysisRouter } from './routes/aiAnalysis.js';
+import { aiChatRouter } from './routes/aiChat.js';
 import { logRouter } from './routes/logs.js';
 import { limitsRouter } from './routes/limits.js';
 import { dashboardRouter } from './routes/dashboard.js';
@@ -50,7 +51,8 @@ export const createApp = () => {
   app.use('/api', bookmarksRouter);
   app.use('/api', conversationRouter);
   app.use('/api', marketDataRouter);
-  app.use('/api', aiRouter);
+  app.use('/api', aiChatRouter);
+  app.use('/api', aiAnalysisRouter);
 
   // 404 handler
   app.use((req, res) => {

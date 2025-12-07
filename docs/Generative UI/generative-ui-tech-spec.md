@@ -12,7 +12,7 @@ To support rich text rendering and dynamic UI, we will add the following lightwe
 -   `clsx` & `tailwind-merge`: For clean and dynamic Tailwind class construction.
 
 ### 2. Component Hierarchy
-We will introduce a new set of components in `moonshot/components/generative/`:
+We will introduce a new set of components in `moonshot_fe/components/generative/`:
 
 #### A. `GenerativeSection` (Container)
 -   **Purpose**: The main wrapper for AI content.

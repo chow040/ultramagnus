@@ -31,7 +31,7 @@ The backend must act as the source of truth for server-side operations and poten
     *   `timestamp`: ISO 8601 format.
     *   `level`: Severity level.
     *   `correlationId`: A unique ID tracing the request from FE to BE.
-    *   `service`: "backend-bff".
+    *   `service`: "moonshot-be".
     *   `userId`: (If authenticated) ID of the user making the request.
     *   `path`: API endpoint accessed.
 *   **HTTP Request Logging:**
@@ -88,7 +88,7 @@ The frontend must capture client-side exceptions and transmit them to a centrali
 {
   "timestamp": "2025-11-29T14:30:00.123Z",
   "level": "error",
-  "service": "ultramagnus-backend",
+  "service": "moonshot-be",
   "correlationId": "123e4567-e89b-12d3-a456-426614174000",
   "message": "Database connection failed",
   "userId": "user_123",
