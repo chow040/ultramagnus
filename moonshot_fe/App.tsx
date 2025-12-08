@@ -24,6 +24,17 @@ import { fetchReportById, listReports } from './services/reportClient';
 import { addBookmark, listBookmarks, removeBookmark } from './services/bookmarkClient';
 import { saveReport } from './services/reportSaveClient';
 
+const getStoredUser = (): UserProfile | null => {
+  if (typeof window === 'undefined') return null;
+  const saved = localStorage.getItem('ultramagnus_user');
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved) as UserProfile;
+  } catch {
+    return null;
+  }
+};
+
 const SAMPLE_REPORT: EquityReport = {
   companyName: "AstroMining Corp",
   ticker: "ASTRO",
@@ -345,10 +356,11 @@ function App() {
     return <FinancialsMock />;
   }
 
+  const initialUser = getStoredUser();
   const [ticker, setTicker] = useState('');
 
   // View State
-  const [viewMode, setViewMode] = useState<'LANDING' | 'DASHBOARD' | 'REPORT' | 'SETTINGS' | 'TICKER_COMMAND'>('LANDING');
+  const [viewMode, setViewMode] = useState<'LANDING' | 'DASHBOARD' | 'REPORT' | 'SETTINGS' | 'TICKER_COMMAND'>(initialUser ? 'DASHBOARD' : 'LANDING');
 
   // Demo Modal State
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -365,10 +377,11 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // User & Auth State
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(initialUser);
   const [dashboardData, setDashboardData] = useState<DashboardView | null>(null);
   const [dashboardErrors, setDashboardErrors] = useState<DashboardError[]>([]);
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMessage, setAuthModalMessage] = useState<string>(''); // Dynamic message for auth modal
   const [authContext, setAuthContext] = useState<AuthModalContext>('unknown');
@@ -438,46 +451,50 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     };
 
     const run = async () => {
-      if (oauthError) {
-        logger.warn('auth.oauth.error', { meta: { error: oauthError } });
-        clearParams();
-        return;
-      }
+      try {
+        if (oauthError) {
+          logger.warn('auth.oauth.error', { meta: { error: oauthError } });
+          clearParams();
+          return;
+        }
 
-      if (oauthToken) {
-        logger.info('auth.oauth.exchange.start');
-        try {
-          const { data: me, requestId } = await apiJson('/api/auth/google/exchange', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oauth_token: oauthToken })
-          }, { operation: 'auth.google.exchange' });
+        if (oauthToken) {
+          logger.info('auth.oauth.exchange.start');
+          try {
+            const { data: me, requestId } = await apiJson('/api/auth/google/exchange', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oauth_token: oauthToken })
+            }, { operation: 'auth.google.exchange' });
 
-          const profile = profileFromResponse(me);
-          if (profile) {
-            setUser(profile);
-            localStorage.setItem('ultramagnus_user', JSON.stringify(profile));
+            const profile = profileFromResponse(me);
+            if (profile) {
+              setUser(profile);
+              localStorage.setItem('ultramagnus_user', JSON.stringify(profile));
+            }
+            logger.info('auth.oauth.exchange.success', { requestId, meta: { hasProfile: !!profile } });
+          } catch (err) {
+            logger.captureError(err, { meta: { stage: 'auth.google.exchange' } });
           }
-          logger.info('auth.oauth.exchange.success', { requestId, meta: { hasProfile: !!profile } });
-        } catch (err) {
-          logger.captureError(err, { meta: { stage: 'auth.google.exchange' } });
+          clearParams();
+          return;
         }
-        clearParams();
-        return;
-      }
 
-      if (token) {
-        logger.info('auth.verify.start');
-        try {
-          const data = await verifyEmail(token);
-          logger.info('auth.verify.success', { meta: { userId: data.user?.id } });
-        } catch (err) {
-          logger.captureError(err, { meta: { action: 'auth.verify' } });
+        if (token) {
+          logger.info('auth.verify.start');
+          try {
+            const data = await verifyEmail(token);
+            logger.info('auth.verify.success', { meta: { userId: data.user?.id } });
+          } catch (err) {
+            logger.captureError(err, { meta: { action: 'auth.verify' } });
+          }
+          clearParams();
         }
-        clearParams();
-      }
 
-      await loadSession();
+        await loadSession();
+      } finally {
+        setIsBootstrapping(false);
+      }
     };
 
     run();
@@ -1136,6 +1153,17 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   const customKey = localStorage.getItem('ultramagnus_user_api_key');
   const isTeaserMode = !user && !customKey && report?.ticker !== 'ASTRO';
 
+  if (isBootstrapping) {
+    return (
+      <div className="min-h-screen bg-background text-primary flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-secondary" />
+          <span className="text-sm text-secondary">Preparing your dashboard…</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen font-sans bg-background text-primary relative overflow-hidden pb-20 selection:bg-secondary/20">
 
@@ -1293,6 +1321,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
                 onLoadMoreBookmarks={loadMoreBookmarks}
                 isLoadingReportsPage={isLoadingReportsPage}
                 isLoadingBookmarksPage={isLoadingBookmarksPage}
+                isDashboardLoading={isDashboardLoading}
                 onSearch={handleSearch}
                 onLoadReport={loadReport}
                 onDeleteReport={deleteReport}

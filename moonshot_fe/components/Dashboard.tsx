@@ -43,6 +43,7 @@ interface DashboardProps {
   onLoadMoreBookmarks?: () => void;
   isLoadingReportsPage?: boolean;
   isLoadingBookmarksPage?: boolean;
+  isDashboardLoading?: boolean;
   onSearch: (e?: React.FormEvent, ticker?: string) => void;
   onLoadReport: (item: SavedReportItem) => void;
   onDeleteReport: (ticker: string, e: React.MouseEvent) => void;
@@ -524,6 +525,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   onLoadMoreBookmarks,
   isLoadingReportsPage,
   isLoadingBookmarksPage,
+  isDashboardLoading,
   tickerInput,
   onTickerChange,
   suggestions,
@@ -576,6 +578,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const bookmarkedCount = reportLibrary.filter(i => i.isBookmarked).length;
   const reportsGenerated = reportLibrary.length;
   const bullishCount = reportLibrary.filter(r => r.verdict === 'BUY').length;
+  const showLibrarySkeleton = !!isDashboardLoading;
+  const skeletonItems = useMemo(() => Array.from({ length: view === 'GRID' ? 6 : 4 }), [view]);
 
   // Reusable Interactive Stat Tab Component (Dieter Rams Style: Minimal, Functional)
   const StatFilterTab = ({ 
@@ -782,91 +786,108 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             </div>
 
-            {totalItems === 0 ? (
-                <div className="bg-surface rounded-sm p-12 border border-border border-dashed flex flex-col items-center justify-center text-center min-h-[300px] animate-fade-in">
-                <div className="w-16 h-16 bg-tertiary/20 rounded-full flex items-center justify-center mb-4">
-                    {filter === 'BOOKMARKED' ? <Bookmark className="w-8 h-8 text-secondary" /> :
-                    filter === 'BULLISH' ? <TrendingUp className="w-8 h-8 text-secondary" /> :
-                    <FileStack className="w-8 h-8 text-secondary" />}
-                </div>
-                
-                <h4 className="text-xl font-semibold text-primary mb-2">
-                    {filter === 'ALL' ? "Your library is empty" : "No reports match this filter"}
-                </h4>
-                
-                <p className="text-secondary max-w-sm mb-6">
-                    {filter === 'ALL' 
-                        ? 'Search for a stock ticker above and click "Initiate" to generate your first AI-powered equity report.' 
-                        : `We couldn't find any items in your library matching the "${filter.replace('_', ' ')}" criteria.`
-                    }
-                </p>
-                
-                {filter === 'ALL' ? (
-                    <button 
-                        onClick={onViewSample} 
-                        className="text-primary hover:text-primary/80 text-sm font-bold flex items-center gap-1 border-b border-primary pb-0.5"
-                    >
-                        See a sample report <ArrowRight className="w-4 h-4" />
-                    </button>
-                ) : (
-                    <button 
-                        onClick={() => setFilter('ALL')} 
-                        className="bg-primary text-white px-4 py-2 rounded-sm font-medium text-sm hover:opacity-90 transition-colors"
-                    >
-                        Clear Filters
-                    </button>
-                )}
-                </div>
+            {showLibrarySkeleton ? (
+              <div className={view === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr" : "flex flex-col gap-3"}>
+                {skeletonItems.map((_, idx) => (
+                  <div key={idx} className="bg-surface rounded-sm border border-border p-6 animate-pulse">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-4 w-24 bg-tertiary/40 rounded-sm" />
+                      <div className="h-4 w-10 bg-tertiary/40 rounded-sm" />
+                    </div>
+                    <div className="h-5 w-32 bg-tertiary/40 rounded-sm mb-2" />
+                    <div className="h-4 w-48 bg-tertiary/30 rounded-sm mb-6" />
+                    <div className="flex gap-2">
+                      <div className="h-8 w-20 bg-tertiary/30 rounded-sm" />
+                      <div className="h-8 w-20 bg-tertiary/20 rounded-sm" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : totalItems === 0 ? (
+              <div className="bg-surface rounded-sm p-12 border border-border border-dashed flex flex-col items-center justify-center text-center min-h-[300px] animate-fade-in">
+              <div className="w-16 h-16 bg-tertiary/20 rounded-full flex items-center justify-center mb-4">
+                  {filter === 'BOOKMARKED' ? <Bookmark className="w-8 h-8 text-secondary" /> :
+                  filter === 'BULLISH' ? <TrendingUp className="w-8 h-8 text-secondary" /> :
+                  <FileStack className="w-8 h-8 text-secondary" />}
+              </div>
+              
+              <h4 className="text-xl font-semibold text-primary mb-2">
+                  {filter === 'ALL' ? "Your library is empty" : "No reports match this filter"}
+              </h4>
+              
+              <p className="text-secondary max-w-sm mb-6">
+                  {filter === 'ALL' 
+                      ? 'Search for a stock ticker above and click "Initiate" to generate your first AI-powered equity report.' 
+                      : `We couldn't find any items in your library matching the "${filter.replace('_', ' ')}" criteria.`
+                  }
+              </p>
+              
+              {filter === 'ALL' ? (
+                  <button 
+                      onClick={onViewSample} 
+                      className="text-primary hover:text-primary/80 text-sm font-bold flex items-center gap-1 border-b border-primary pb-0.5"
+                  >
+                      See a sample report <ArrowRight className="w-4 h-4" />
+                  </button>
+              ) : (
+                  <button 
+                      onClick={() => setFilter('ALL')} 
+                      className="bg-primary text-white px-4 py-2 rounded-sm font-medium text-sm hover:opacity-90 transition-colors"
+                  >
+                      Clear Filters
+                  </button>
+              )}
+              </div>
             ) : (
-                <div className={view === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr" : "flex flex-col gap-3"}>
-                  {/* 1. Active / Processing Sessions (Always First, only show if ALL filter) */}
-                  {filter === 'ALL' && analysisSessions.map((session) => (
+              <div className={view === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr" : "flex flex-col gap-3"}>
+                {/* 1. Active / Processing Sessions (Always First, only show if ALL filter) */}
+                {filter === 'ALL' && analysisSessions.map((session) => (
+                    <LibraryCard 
+                        key={session.id} 
+                        session={session} 
+                        onClick={() => session.status === 'READY' && onViewAnalyzedReport(session.id)}
+                        onAction={(e) => { e.stopPropagation(); onCancelAnalysis(session.id); }}
+                        viewMode={view}
+                    />
+                ))}
+
+                {/* 2. Library Items */}
+                {filteredLibrary.map((item) => {
+                    const stableKey = item.id || item.bookmarkId || `${item.ticker}-${item.addedAt}`;
+                    return (
                       <LibraryCard 
-                          key={session.id} 
-                          session={session} 
-                          onClick={() => session.status === 'READY' && onViewAnalyzedReport(session.id)}
-                          onAction={(e) => { e.stopPropagation(); onCancelAnalysis(session.id); }}
+                          key={stableKey} 
+                          savedItem={item}
+                          onClick={() => onLoadReport(item)}
+                          onAction={(e) => onDeleteReport(item.ticker, e)}
                           viewMode={view}
                       />
-                  ))}
+                    );
+                })}
 
-                  {/* 2. Library Items */}
-                  {filteredLibrary.map((item) => {
-                      const stableKey = item.id || item.bookmarkId || `${item.ticker}-${item.addedAt}`;
-                      return (
-                        <LibraryCard 
-                            key={stableKey} 
-                            savedItem={item}
-                            onClick={() => onLoadReport(item)}
-                            onAction={(e) => onDeleteReport(item.ticker, e)}
-                            viewMode={view}
-                        />
-                      );
-                  })}
-
-                  {(hasMoreReports || hasMoreBookmarks) && (
-                    <div className="col-span-full flex gap-3 flex-wrap">
-                      {hasMoreReports && (
-                        <button
-                          onClick={onLoadMoreReports}
-                          disabled={isLoadingReportsPage}
-                          className="px-4 py-2 rounded-sm border border-border bg-surface text-sm font-medium text-primary hover:bg-tertiary/10 transition-colors disabled:opacity-50"
-                        >
-                          {isLoadingReportsPage ? 'Loading reports…' : 'Load more reports'}
-                        </button>
-                      )}
-                      {hasMoreBookmarks && (
-                        <button
-                          onClick={onLoadMoreBookmarks}
-                          disabled={isLoadingBookmarksPage}
-                          className="px-4 py-2 rounded-sm border border-border bg-surface text-sm font-medium text-primary hover:bg-tertiary/10 transition-colors disabled:opacity-50"
-                        >
-                          {isLoadingBookmarksPage ? 'Loading bookmarks…' : 'Load more bookmarks'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                {(hasMoreReports || hasMoreBookmarks) && (
+                  <div className="col-span-full flex gap-3 flex-wrap">
+                    {hasMoreReports && (
+                      <button
+                        onClick={onLoadMoreReports}
+                        disabled={isLoadingReportsPage}
+                        className="px-4 py-2 rounded-sm border border-border bg-surface text-sm font-medium text-primary hover:bg-tertiary/10 transition-colors disabled:opacity-50"
+                      >
+                        {isLoadingReportsPage ? 'Loading reports…' : 'Load more reports'}
+                      </button>
+                    )}
+                    {hasMoreBookmarks && (
+                      <button
+                        onClick={onLoadMoreBookmarks}
+                        disabled={isLoadingBookmarksPage}
+                        className="px-4 py-2 rounded-sm border border-border bg-surface text-sm font-medium text-primary hover:bg-tertiary/10 transition-colors disabled:opacity-50"
+                      >
+                        {isLoadingBookmarksPage ? 'Loading bookmarks…' : 'Load more bookmarks'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
         </div>
 
