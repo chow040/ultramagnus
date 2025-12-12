@@ -3,7 +3,7 @@
 Reference: `AGENT.md` (project baseline) and `docs/langchain-tech-spec.md`.
 
 ## 1. Overview
-This document outlines the plan to migrate the existing "AI Analyst" logic from the raw `@google/genai` implementation in `moonshot_be/src/routes/aiAnalysis.ts` to a structured LangChain architecture within `moonshot_be/src/langchain/analyst/`.
+This document outlines the plan to migrate the existing "AI Analyst" logic from the raw `@google/genai` implementation in `moonshot_be/src/routes/aiAnalysis.ts` to a structured LangChain architecture within `moonshot_be/src/analyst/`.
 
 ## 2. Objectives
 *   **Decouple Logic**: Separate prompt management, model interaction, and data fetching from the HTTP route handler.
@@ -14,11 +14,14 @@ This document outlines the plan to migrate the existing "AI Analyst" logic from 
 
 ## 3. Architecture
 
-### 3.1 Directory Structure (`moonshot_be/src/langchain/analyst/`)
-*   `graph.ts`: Defines the LangGraph `StateGraph`, the `AgentState` interface, and the main entry point `runAnalystGraph`.
-*   `nodes/marketAnalyst.ts`: The node that performs broad market assessment using Google Search.
-*   `nodes/equityAnalyst.ts`: The node that refines the report using hard financial data.
-*   `tools/financialDataTool.ts`: A tool to fetch structured financial data.
+### 3.1 Directory Structure (`moonshot_be/src/analyst/`)
+*   `langgraph/analystWorkflow.ts`: Defines the LangGraph `StateGraph`, the `AgentState` interface, and the main entry point `runAnalystGraph`/`streamAnalystGraph`.
+*   `langgraph/nodes/marketAnalyst.ts`: Drafts the report using Google Search; prompt and schema are defined inline.
+*   `langgraph/nodes/fetchFinancials.ts`: Fetches hard financial data (last 4 quarters) via Finnhub tool.
+*   `langgraph/nodes/equityAnalyst.ts`: Reviews/refines the draft against financials; prompt and schema are defined inline.
+*   `langgraph/client.ts`: Analyst-specific LLM factory (Gemini, streaming enabled).
+*   `types.ts`: Shared Analyst types (Report, AgentState).
+*   `langchain/tools/financialDataTool.ts`: Fetches structured financial data (shared utility in the langchain root).
 
 ### 3.2 Data Flow (The Graph)
 The workflow will be modeled as a state machine:
@@ -53,28 +56,29 @@ The workflow will be modeled as a state machine:
 
 ### Phase 1: Foundation & Types
 1.  **Install Dependencies**: Add `@langchain/langgraph`.
-2.  **Extract Types**: Analyze `REPORT_PROMPT` in `aiAnalysis.ts` and create strict TypeScript interfaces in `src/langchain/analyst/types.ts`.
-3.  **Port Prompt**: Move the prompt text to `src/langchain/analyst/prompts.ts`.
+2.  **Extract Types**: Analyze `REPORT_PROMPT` in `aiAnalysis.ts` and create strict TypeScript interfaces in `src/analyst/types.ts`.
+3.  **Port Prompt**: Inline prompts and shared JSON schema inside `src/analyst/langgraph/nodes/*`.
 
 ### Phase 2: Analyst Implementation
-1.  **Implement `client.ts`**:
-    *   Implement `getLLMClient` to return a configured `ChatGoogleGenerativeAI` instance.
+1.  **Implement `langgraph/client.ts`**:
+    *   Provide `getAnalystLLM` returning a configured `ChatGoogleGenerativeAI` instance (streaming on, tuned temperature).
 2.  **Implement Nodes**:
-    *   `marketAnalyst.ts`: A function that calls the LLM with search tools and returns the partial state update.
-    *   `equityAnalyst.ts`: A function that takes the state, formats a "Review and Refine" prompt, and calls the LLM.
-3.  **Implement Graph (`graph.ts`)**:
+    *   `marketAnalyst.ts`: Calls the LLM with search tools and returns a partial state update (draft report).
+    *   `equityAnalyst.ts`: Takes state + financials, formats a "Review and Refine" prompt, and returns the refined report.
+    *   `fetchFinancials.ts`: Pulls recent quarters via the shared Finnhub tool.
+3.  **Implement Graph (`langgraph/analystWorkflow.ts`)**:
     *   Define `AgentState`.
     *   Initialize `StateGraph<AgentState>`.
     *   Add nodes and edges.
-    *   Compile the graph.
+    *   Compile the graph and expose run/stream helpers.
 4.  **Orchestration**:
-    *   Export `generateEquityReport` which invokes the graph.
-    *   **Streaming**: Use `graph.stream()` to yield events. This allows the frontend to see "Market Analysis Complete..." before the final JSON arrives.
+    *   Export `runAnalystGraph` / `streamAnalystGraph`.
+    *   **Streaming**: Use `graph.stream()` to yield events so the client can surface progress before final JSON.
 
 ### Phase 3: Integration
 1.  **Feature Flag**: Add `LANGCHAIN_ANALYST_ENABLED` to `src/config/appConfig.ts`.
 2.  **Route Update**: Modify `src/routes/aiAnalysis.ts`:
-    *   Import `generateEquityReport`.
+    *   Import `runAnalystGraph`/`streamAnalystGraph`.
     *   If enabled, stream the graph events.
     *   **Streaming Response**: The route must handle the stream of graph events and send Server-Sent Events (SSE) or a streaming JSON response to the client.
 
@@ -85,19 +89,18 @@ The workflow will be modeled as a state machine:
 ## 5. Checklist
 
 - [ ] **Scaffolding**
-    - [ ] Install `@langchain/langgraph`.
-    - [ ] Create `src/langchain/analyst/types.ts` (Report interface).
-    - [ ] Create `src/langchain/analyst/graph.ts` (State definition).
+    - [x] Install `@langchain/langgraph`.
+    - [x] Create `src/analyst/types.ts` (Report interface).
+    - [x] Create `src/analyst/langgraph/analystWorkflow.ts` (State definition).
 
 - [ ] **Nodes & Tools**
-    - [ ] Implement `market_analyst` node.
-    - [ ] Implement `fetch_financials` node (mocked initially or real).
-    - [ ] Implement `equity_analyst` node.
+    - [x] Implement `market_analyst` node (inline prompt/schema).
+    - [x] Implement `fetch_financials` node (real Finnhub fetch).
+    - [x] Implement `equity_analyst` node (inline prompt/schema).
 
 - [ ] **Graph Assembly**
-    - [ ] Wire nodes in `graph.ts`.
+    - [x] Wire nodes in `langgraph/analystWorkflow.ts`.
     - [ ] Verify `graph.stream()` output format.
 
 - [ ] **Integration**
     - [ ] Update `POST /ai/stream-report` to consume the graph stream.
-

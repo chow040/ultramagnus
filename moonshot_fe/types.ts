@@ -216,6 +216,9 @@ export interface EquityReport {
   
   // New AI Assessment Schema
   aiAssessment?: AiAssessment;
+  
+  // Fundamental Analysis (New Node)
+  fundamentalAnalysis?: any;
 
   // Analysis
   shortTermFactors: FactorAnalysis;

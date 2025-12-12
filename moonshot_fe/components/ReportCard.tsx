@@ -5,6 +5,7 @@ import { EquityReport, PricePoint, FinancialYear, SavedReportItem, FactorAnalysi
 import { streamChatWithGemini } from '../services/geminiService';
 import { fetchConversation } from '../services/conversationClient';
 import { apiJson } from '../services/apiClient';
+import { FundamentalAssessment } from './FundamentalAssessment';
 import { 
   Target, 
   Calendar, 
@@ -897,8 +898,8 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
   const momentumBg = isOverbought ? 'from-rose-500/20' : isOversold ? 'from-emerald-500/20' : 'from-amber-500/20';
   const momentumLabel = report.momentumAnalysis?.signal || (isOverbought ? 'Overbought' : isOversold ? 'Oversold' : 'Neutral');
 
-  const isPriceUp = report.priceChange.startsWith('+');
-  const priceColor = isPriceUp ? 'text-green-400' : report.priceChange.startsWith('-') ? 'text-red-400' : 'text-slate-200';
+  const isPriceUp = report.priceChange?.startsWith('+') || false;
+  const priceColor = isPriceUp ? 'text-green-400' : report.priceChange?.startsWith('-') ? 'text-red-400' : 'text-slate-200';
 
   // Verdict Colors
   const verdictColor = report.verdict === 'BUY' ? 'text-emerald-400' : report.verdict === 'SELL' ? 'text-rose-400' : 'text-amber-400';
@@ -942,11 +943,12 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
 
   // Scenario Spectrum Calculations
   const scenarioData = useMemo(() => {
-    if (!report.scenarioAnalysis) return null;
+    const sa = report.scenarioAnalysis;
+    if (!sa || !sa.bear?.price || !sa.base?.price || !sa.bull?.price) return null;
     const current = parsePrice(report.currentPrice);
-    const bear = parsePrice(report.scenarioAnalysis.bear.price);
-    const base = parsePrice(report.scenarioAnalysis.base.price);
-    const bull = parsePrice(report.scenarioAnalysis.bull.price);
+    const bear = parsePrice(sa.bear.price);
+    const base = parsePrice(sa.base.price);
+    const bull = parsePrice(sa.bull.price);
 
     if (!current || !bear || !base || !bull) return null;
 
@@ -1328,6 +1330,9 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
         </LockedFeature>
 
       </div>
+
+      {/* Fundamental Assessment (derived from report) */}
+      <FundamentalAssessment report={report} sourceLabel={report.fundamentalAnalysis ? 'LangGraph' : 'Legacy'} />
 
       {/* NEW: Thesis Evolution / Change Log - LOCKED IN TEASER */}
       {report.history && (

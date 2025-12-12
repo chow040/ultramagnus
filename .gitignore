@@ -8,3 +8,5 @@ coverage/
 .npm/
 *.log
 backend/.env
+
+moonshot_be/logs/langgraph

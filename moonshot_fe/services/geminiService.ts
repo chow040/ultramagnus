@@ -45,40 +45,63 @@ export const streamEquityReport = async (
   onChunk?: (chunk: string) => void
 ): Promise<EquityReport> => {
   let buffer = '';
+  const useLanggraph = import.meta.env.VITE_LANGGRAPH_ANALYST_ENABLED === 'true';
+  const endpoint = useLanggraph ? '/api/ai/stream-report/langgraph' : '/api/ai/stream-report';
   try {
-    const { requestId } = await streamText('/api/ai/stream-report', {
+    const { requestId } = await streamText(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ticker })
     }, (chunk) => {
       buffer += chunk;
       onChunk?.(chunk);
-    }, { operation: 'ai.reports.stream' });
+    }, { operation: 'ai.reports.stream', meta: { endpoint } });
 
-    logger.info('reports.stream.completed', { meta: { ticker, requestId } });
+    logger.info('reports.stream.completed', { meta: { ticker, requestId, endpoint } });
   } catch (error) {
-    logger.captureError(error, { meta: { ticker, endpoint: '/api/ai/stream-report' } });
+    logger.captureError(error, { meta: { ticker, endpoint } });
     throw error;
   }
 
   try {
-    // Attempt to clean fenced code blocks if present
-    let text = buffer.replace(/```json\n?/g, '').replace(/```/g, '');
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      text = text.substring(firstBrace, lastBrace + 1);
+    if (useLanggraph) {
+      const lines = buffer
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      let lastParsed: any = null;
+      for (const line of lines) {
+        try {
+          lastParsed = JSON.parse(line);
+        } catch (_err) {
+          // ignore malformed lines
+        }
+      }
+      if (!lastParsed || !lastParsed.ticker) {
+        throw new Error('Streamed report missing required fields (ticker/companyName).');
+      }
+      return lastParsed as EquityReport;
+    } else {
+      // Legacy single-blob stream parsing
+      let text = buffer.replace(/```json\n?/g, '').replace(/```/g, '');
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        text = text.substring(firstBrace, lastBrace + 1);
+      }
+      if (!text.trim()) {
+        throw new Error('Empty stream response');
+      }
+      const parsed = JSON.parse(text) as Partial<EquityReport>;
+      if (!parsed?.ticker || !parsed?.companyName) {
+        throw new Error('Streamed report missing required fields (ticker/companyName).');
+      }
+      return parsed as EquityReport;
     }
-    if (!text.trim()) {
-      throw new Error('Empty stream response');
-    }
-    const parsed = JSON.parse(text) as Partial<EquityReport>;
-    if (!parsed?.ticker || !parsed?.companyName) {
-      throw new Error('Streamed report missing required fields (ticker/companyName).');
-    }
-    return parsed as EquityReport;
   } catch (err) {
-    logger.captureError(err, { meta: { ticker, reason: 'parse_stream_report_failed', bufferPreview: buffer.slice(0, 500) } });
+    logger.captureError(err, {
+      meta: { ticker, reason: 'parse_stream_report_failed', bufferPreview: buffer.slice(0, 500), endpoint }
+    });
     throw new Error('Failed to parse streamed report JSON.');
   }
 };

@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import { authRouter } from './routes/auth.js';
 import { aiAnalysisRouter } from './routes/aiAnalysis.js';
+import { aiAnalysisLanggraphRouter } from './routes/aiAnalysisLanggraph.js';
 import { aiChatRouter } from './routes/aiChat.js';
 import { logRouter } from './routes/logs.js';
 import { limitsRouter } from './routes/limits.js';
@@ -53,6 +54,7 @@ export const createApp = () => {
   app.use('/api', marketDataRouter);
   app.use('/api', aiChatRouter);
   app.use('/api', aiAnalysisRouter);
+  app.use('/api', aiAnalysisLanggraphRouter);
 
   // 404 handler
   app.use((req, res) => {

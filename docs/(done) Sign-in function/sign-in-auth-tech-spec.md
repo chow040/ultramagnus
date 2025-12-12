@@ -25,9 +25,10 @@ Reference PRD: `docs/Sign-in function/sign-in-create-account-prd.md`
 - **Modified Components:**
     - `AuthModal.tsx`: Replaces fake timeout with real Supabase email/password and Google SSO flows.
     - `App.tsx`: Hydrates user session from Supabase on load and manages global auth state.
+    - **Post-login UX:** Add an auth bootstrapping guard so returning users with a cached session land directly on Dashboard (no landing flash) and show dashboard skeletons while reports/bookmarks load.
 - **State Management:**
     - Sync Supabase session state with local React state (`user` context).
-    - Persist a lightweight user object in `localStorage` for optimistic UI rendering.
+    - Persist a lightweight user object in `localStorage` for optimistic UI rendering and to choose initial view state (`DASHBOARD` when cached user exists).
 
 ## Data Model & Schema
 
@@ -120,6 +121,7 @@ The frontend and backend will collaborate to enforce the guest search limit.
 2.  Update `AuthModal` to use real auth methods.
 3.  Implement session hydration in `App.tsx`.
 4.  Add guest limit logic and UI gating.
+5.  Add bootstrapping guard + initial Dashboard view for cached users; render dashboard skeletons while reports/bookmarks fetch.
 
 ### Phase 3: Analytics & Polish
 1.  Instrument `auth_modal_open`, `auth_modal_submit`, `auth_modal_success` events.
