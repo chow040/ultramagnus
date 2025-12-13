@@ -37,3 +37,7 @@ export const listReports = async (page = 1, pageSize = 10) => {
   }, { operation: 'reports.list' });
   return data;
 };
+
+export const deleteReport = async (id: string) => {
+  await apiJson<void>(`/api/reports/${id}`, { method: 'DELETE' }, { operation: 'reports.delete' });
+};

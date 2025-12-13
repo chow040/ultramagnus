@@ -20,7 +20,7 @@ import { logger } from './src/lib/logger';
 import { apiJson, ApiError } from './services/apiClient';
 import { broadcast, subscribe } from './services/sync';
 import { fetchDashboard } from './services/dashboardClient';
-import { fetchReportById, listReports } from './services/reportClient';
+import { fetchReportById, listReports, deleteReport as deleteReportApi } from './services/reportClient';
 import { addBookmark, listBookmarks, removeBookmark } from './services/bookmarkClient';
 import { saveReport } from './services/reportSaveClient';
 
@@ -539,6 +539,22 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     logger.setUser(user || undefined);
   }, [user]);
 
+  // Auto-logout if session expires (periodic ping)
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      try {
+        await fetchMe();
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          logger.info('auth.session.expired', { meta: { userId: user.id } });
+          handleLogout();
+        }
+      }
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   useEffect(() => {
     logger.setRoute(viewMode);
   }, [viewMode]);
@@ -1019,10 +1035,21 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   };
 
   // Permanently Remove from Library
-  const deleteReport = (tickerToRemove: string, e: React.MouseEvent) => {
+  const deleteReport = async (itemToRemove: SavedReportItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    setReportLibrary(reportLibrary.filter(item => item.ticker !== tickerToRemove));
-    logger.warn('library.report.deleted', { meta: { ticker: tickerToRemove } });
+    if (!itemToRemove.id) {
+      // Local-only removal if no persisted id
+      setReportLibrary(reportLibrary.filter(item => item.ticker !== itemToRemove.ticker));
+      logger.warn('library.report.deleted_local', { meta: { ticker: itemToRemove.ticker } });
+      return;
+    }
+    try {
+      await deleteReportApi(itemToRemove.id);
+      setReportLibrary(reportLibrary.filter(item => item.id !== itemToRemove.id));
+      logger.info('library.report.deleted', { meta: { reportId: itemToRemove.id, ticker: itemToRemove.ticker } });
+    } catch (err: any) {
+      logger.error('library.report.delete_failed', { meta: { reportId: itemToRemove.id, ticker: itemToRemove.ticker, err } });
+    }
   };
 
   const loadReport = async (item: SavedReportItem) => {

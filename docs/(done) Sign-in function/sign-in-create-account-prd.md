@@ -63,6 +63,8 @@
 4. **Teaser Gate Hooks**
    - `ReportCard` should call `onUnlock` for every locked block, which opens the modal with unlock copy.
    - Bookmark/save buttons while logged out must also open the modal rather than silently failing.
+5. **Session Expiry**
+   - If the server returns 401 during a periodic `/api/auth/me` check, auto-logout the user: clear cached profile, broadcast logout across tabs, and return to the landing state. Run the heartbeat at a reasonable interval (e.g., every 5 minutes) and log the event for visibility.
 5. **State Synchronization**
    - Update header (`Header.tsx`) to reflect `user.tier` badge, `Saved Reports` count, and dropdown actions immediately after login or logout.
    - Ensure `AccountSettingsPage` only mounts when `user` is defined; otherwise, intercept with the modal.

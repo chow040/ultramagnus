@@ -133,6 +133,12 @@ Reference PRD: `docs/Save report card/saved-reports-prd.md`
 }
 ```
 
+### `DELETE /api/reports/:id`
+
+- Auth required; only deletes if `owner_id` matches the requester.
+- Success: `204 No Content`.
+- Errors: `404` if not found/owned; `403` if auth missing/invalid.
+
 ### `POST /api/bookmarks`
 
 **Request Body:**

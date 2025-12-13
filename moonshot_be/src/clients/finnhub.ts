@@ -69,12 +69,26 @@ export interface FinnhubFinancialsReported {
     symbol: string;
     year: number;
     quarter?: number;
+    form?: string;
+    startDate?: string;
+    endDate?: string;
+    filedDate?: string;
+    acceptedDate?: string;
     report: {
       ic?: { [key: string]: number | string | null };
       bs?: { [key: string]: number | string | null };
       cf?: { [key: string]: number | string | null };
     };
   }>;
+}
+
+export interface FinnhubEarningsSurprise {
+  symbol?: string;
+  period?: string;
+  actual?: number;
+  estimate?: number;
+  surprise?: number;
+  surprisePercent?: number;
 }
 
 export const getQuote = (symbol: string) =>
@@ -94,3 +108,6 @@ export const getFinancialsReported = (symbol: string, freq: 'annual' | 'quarterl
 
 export const getExchangeRate = (from: string, to: string) =>
   fetchJson<{ quote: number }>('/forex/rates', { base: from, symbols: to });
+
+export const getEarningsSurprises = (symbol: string) =>
+  fetchJson<FinnhubEarningsSurprise[]>('/stock/earnings', { symbol });

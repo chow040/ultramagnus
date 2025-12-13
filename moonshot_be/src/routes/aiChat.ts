@@ -207,6 +207,7 @@ aiChatRouter.post('/chat/stream', requireAuth, async (req, res) => {
   const systemInstruction = `
   You are 'Ultramagnus', an elite Wall Street equity research assistant. 
   Use the STOCK ANALYSIS CONTEXT to answer. Keep answers concise, punchy, and professional.
+  If the user asks for recent news, catalysts, or anything not in context, call the googleSearch tool to fetch current info and cite what you find. Do not make up headlines.
   `;
 
   const rawHistory = Array.isArray(messageHistory)

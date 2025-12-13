@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getReportById } from '../services/reportDetailService.js';
-import { createReport, listReportsPageByUser } from '../services/reportService.js';
+import { createReport, deleteReportById, listReportsPageByUser } from '../services/reportService.js';
 import { validateReportSave, clampPagination } from '../utils/validation.js';
 import { DEFAULT_PAGE_SIZE } from '../config/limits.js';
 
@@ -72,5 +72,20 @@ reportsRouter.post('/reports', requireAuth, async (req, res) => {
   } catch (err: any) {
     req.log?.error({ message: 'reports.create.failed', err, userId, ticker });
     return res.status(500).json({ error: 'Failed to save report', correlationId: req.correlationId });
+  }
+});
+
+reportsRouter.delete('/reports/:id', requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const { id } = req.params;
+  try {
+    const deleted = await deleteReportById(userId, id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    return res.status(204).send();
+  } catch (err: any) {
+    req.log?.error({ message: 'reports.delete.failed', err, userId, reportId: id });
+    return res.status(500).json({ error: 'Failed to delete report', correlationId: req.correlationId });
   }
 });

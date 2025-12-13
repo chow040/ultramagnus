@@ -10,3 +10,4 @@ coverage/
 backend/.env
 
 moonshot_be/logs/langgraph
+moonshot_be/logs/

@@ -21,6 +21,10 @@
   - Legacy: existing streaming JSON blob (unchanged).
   - LangGraph: newline-delimited JSON events; last event contains the full `report`.
   - Frontend must detect which path was used and parse accordingly; ignore partial events if schema not final.
+- **Data inputs (LangGraph)**:
+  - Financial statements: `fetchFinancialsNode` (quarters, YTD semantics tagged).
+  - Financial ratios: `fetchFinancialRatiosNode` (coreSignals + last 4 quarters of ratios) passed to equity analyst prompt for quality/growth/health/valuation context.
+  - Data ordering: market context → financial statements → financial ratios → equity analysis to keep prompts small and deterministic.
 - **Fundamental Assessment UI**:
   - **Design Philosophy (Dieter Rams Style)**:
     - **Less, but better**: Remove all non-essential decoration. Focus strictly on the data and the narrative.

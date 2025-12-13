@@ -2,6 +2,7 @@ import { BaseMessage } from '@langchain/core/messages';
 import { getAnalystLLM } from '../client.js';
 import { AgentState, Report } from '../../types.js';
 import { QuarterFinancial } from '../../../langchain/tools/financialDataTool.js';
+import { FinancialRatioResult } from '../../../langchain/tools/financialRatioDataTool.js';
 import { logger } from '../../../utils/logger.js';
 import { jsonrepair } from 'jsonrepair';
 import fs from 'fs';
@@ -67,26 +68,43 @@ const parseReport = (text: string): Partial<Report> | undefined => {
 const buildEquityReviewPrompt = (
   ticker: string,
   draftReport?: Partial<Report>,
-  financialData?: QuarterFinancial[]
+  financialData?: QuarterFinancial[],
+  financialRatios?: FinancialRatioResult,
+  earningsSurprises?: unknown
 ) => `
-You are senior equity analyst specializing in fundamental stock evaluation, reviewing a draft equity report for ${ticker}.
-You must reconcile the draft with hard financial data (from recent fiancial statements) and fix any inaccuracies, and use the appropriate financial model to derive key valuation metrics and price targets.
+You are a Senior Buy-Side Equity Analyst specializing in fundamental valuation and report QA for ${ticker}.
+Your job: reconcile the draft report against hard financial data and produce a fact-anchored, assumption-explicit valuation. You must behave like a professional analyst writing for an investment committee: conservative with unknowns, explicit about assumptions, and numerically consistent.
 Use the following context to update and finalize the equity report.
 - Draft report (may be incomplete or have inaccuracies)
-- Recent financial statements (JSON array of quarterly financial data
-1. Use exactly one valuation method. Set method to any clear identifier (e.g., pe_multiple, ev_ebitda, ev_sales, dividend_discount, dcf, residual_income, etc.).
+- Recent financial statements (JSON array of quarterly and annually financial data, note that some fields are YTD)
+- Financial ratios/metrics (TTM + recent quarters) for quality, growth, health, valuation, per-share
+- Earnings surprises (last 4 quarters)
+- Macro/political assessment: Identify only material macro/political drivers, information can be gathered through web search. Include them under macroPolitical with source-backed facts and explain mechanism (how it affects revenue/margins/multiple).
+Guidance:
+- Use the provided financial ratios as your signals for quality, growth, health, and per-share context; do not infer ratios from memory.
+- Cross-check valuation inputs (PE/EV multiples, margins, leverage) against these ratios and flag inconsistencies in notes.
+- If a ratio is null/missing, leave it null—do not invent values.
+1. Decide the most appropriate valuation method with your expertise. Set method to any clear identifier (e.g., pe_multiple, ev_ebitda, ev_sales, dividend_discount, dcf, residual_income, etc.).
 2. List assumptions in inputs as an array of { name, value, unit, note }. Unknown values -> null.
 3. Keep keys as defined; if a field is unknown, set null.
-4. Build a financial model based on the provided financials and report data with additional information in the report to support your valuation. Mandate that all valuation inputs come from the provided financialData/current price.
+4. Build a financial model based on the provided financials and report data with additional information in the report to support your valuation and return in under 'fundamentalAnalysis' section in JSON. Mandate that all valuation inputs come from the provided financialData/current price.
+4a. 'inputs' should include at least the key parameters used in your valuation method (e.g., forward_pe, next_year_eps for pe_multiple).
+6. The returned JSON MUST include the 'fundamentalAnalysis' object per the schema. If any field is unknown, set it to null or [].
 5. Do not use analyst price targets directly from the report; only use them to cross-check your own work. If they differ significantly, explain why in valuation.notes.
-6. The returned JSON MUST include the 'fundamentalAnalysis' object per the schema below. If any field is unknown, set it to null or [].
-7. Return ONLY one JSON object. No markdown, no prose.
+7. Populate the 'financials' array directly from the provided financialData; do NOT invent numbers. If a field is missing in financialData, set it to null.
+8. Return ONLY one JSON object. No markdown, no prose.
 
 Draft report (JSON):
 ${JSON.stringify(draftReport || {}, null, 2)}
 
 Recent financial statements (JSON):
 ${JSON.stringify(financialData || [], null, 2)}
+
+Financial ratios/metrics (JSON):
+${JSON.stringify(financialRatios || {}, null, 2)}
+
+Earnings surprises (JSON):
+${JSON.stringify(earningsSurprises || [], null, 2)}
 
 Return a single JSON object that matches this full report schema (including fundamentalAnalysis). If any value is unknown, set it to null or [].
 {
@@ -162,7 +180,13 @@ Return a single JSON object that matches this full report schema (including fund
 
 export async function equityAnalystNode(state: AgentState): Promise<Partial<AgentState>> {
   const llm = getAnalystLLM();
-  const prompt = buildEquityReviewPrompt(state.ticker, state.report, state.financialData);
+  const prompt = buildEquityReviewPrompt(
+    state.ticker,
+    state.report,
+    state.financialData,
+    state.financialRatios,
+    state.earningsSurprises
+  );
   logger.info({ message: 'langgraph.equityAnalyst.start', ticker: state.ticker });
   const response = await llm.invoke(prompt, {
     tools: [{ googleSearch: {} }]

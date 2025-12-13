@@ -1,5 +1,6 @@
 import { equityAnalystNode } from './nodes/equityAnalyst.js';
 import { fetchFinancialsNode } from './nodes/fetchFinancials.js';
+import { fetchFinancialRatiosNode } from './nodes/fetchFinancialRatios.js';
 import { marketAnalystNode } from './nodes/marketAnalyst.js';
 import { AgentState } from '../types.js';
 import { logger } from '../../utils/logger.js';
@@ -15,6 +16,7 @@ export const runAnalystGraph = async (ticker: string) => {
   let state: AgentState = initialState(ticker);
   state = { ...state, ...(await marketAnalystNode(state)) };
   state = { ...state, ...(await fetchFinancialsNode(state)) };
+  state = { ...state, ...(await fetchFinancialRatiosNode(state)) };
   state = { ...state, ...(await equityAnalystNode(state)) };
   return { ...state, messages: [] };
 };
@@ -28,6 +30,10 @@ export async function* streamAnalystGraph(ticker: string) {
 
   state = { ...state, ...(await safeStep('fetch_financials', ticker, () => fetchFinancialsNode(state))) };
   logger.info({ message: 'langgraph.stream.after_financials', ticker });
+  yield { ...state, messages: [] };
+
+  state = { ...state, ...(await safeStep('fetch_financial_ratios', ticker, () => fetchFinancialRatiosNode(state))) };
+  logger.info({ message: 'langgraph.stream.after_financial_ratios', ticker });
   yield { ...state, messages: [] };
 
   state = { ...state, ...(await safeStep('equity_analyst', ticker, () => equityAnalystNode(state))) };

@@ -46,7 +46,7 @@ interface DashboardProps {
   isDashboardLoading?: boolean;
   onSearch: (e?: React.FormEvent, ticker?: string) => void;
   onLoadReport: (item: SavedReportItem) => void;
-  onDeleteReport: (ticker: string, e: React.MouseEvent) => void;
+  onDeleteReport: (item: SavedReportItem, e: React.MouseEvent) => void;
   tickerInput: string;
   onTickerChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   suggestions: {symbol: string, name: string}[];
@@ -859,7 +859,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                           key={stableKey} 
                           savedItem={item}
                           onClick={() => onLoadReport(item)}
-                          onAction={(e) => onDeleteReport(item.ticker, e)}
+                          onAction={(e) => onDeleteReport(item, e)}
                           viewMode={view}
                       />
                     );

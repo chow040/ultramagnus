@@ -124,3 +124,11 @@ export const createReport = async (ownerId: string, input: CreateReportInput) =>
 
   return row?.id;
 };
+
+export const deleteReportById = async (ownerId: string, reportId: string) => {
+  const result = await db.delete(reports)
+    .where(and(eq(reports.id, reportId), eq(reports.ownerId, ownerId)));
+  // drizzle delete returns {rowCount?: number} depending on driver; coerce to number
+  const count = (result as any)?.rowCount ?? 0;
+  return Number(count);
+};

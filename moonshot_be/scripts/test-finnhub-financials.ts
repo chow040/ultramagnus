@@ -14,8 +14,14 @@ const run = async () => {
     const symbol = 'AAPL';
     const data = await getFinancialsReported(symbol, 'quarterly');
 
-    // Show only the most recent quarter
-    const recent = (data?.data || []).slice(0, 1);
+    // Show only the most recent quarter and annotate period types
+    const recent = (data?.data || []).slice(0, 1).map((entry) => ({
+      ...entry,
+      periodTypeIncome: entry.form === '10-K' ? 'ANNUAL' : 'YTD',
+      periodTypeCashFlow: entry.form === '10-K' ? 'ANNUAL' : 'YTD',
+      periodTypeBalanceSheet: 'POINT_IN_TIME'
+    }));
+
     console.log(JSON.stringify(recent, null, 2));
   } catch (err) {
     console.error('Error fetching financials:', err);

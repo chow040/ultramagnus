@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 const buildMarketReportPrompt = (ticker: string) => `
-You are a senior hedge fund analyst.
+You are a senior equity analyst on a buy side firm.
 Generate a comprehensive equity research report for ${ticker}.
 
 You MUST search for the latest real-time data including:
@@ -51,9 +51,6 @@ Return ONLY valid JSON following this exact schema (no markdown, no prose):
   "history": { "previousDate": "String", "previousVerdict": "BUY/HOLD/SELL", "changeRationale": ["String"] },
   "shortTermFactors": { "positive": [{"title": "String", "detail": "String"}], "negative": [{"title": "String", "detail": "String"}] },
   "longTermFactors": { "positive": [{"title": "String", "detail": "String"}], "negative": [{"title": "String", "detail": "String"}] },
-  "financials": [
-     { "year": "String", "revenue": Number, "grossProfit": Number, "operatingIncome": Number, "netIncome": Number, "eps": Number, "cashAndEquivalents": Number, "totalDebt": Number, "shareholderEquity": Number, "operatingCashFlow": Number, "capitalExpenditure": Number, "freeCashFlow": Number }
-  ],
   "priceHistory": [ { "month": "String", "price": Number } ],
   "analystPriceTargets": [ { "month": "String", "averageTarget": Number } ],
   "peers": [ { "ticker": "String", "name": "String", "marketCap": "String", "peRatio": "String", "revenueGrowth": "String", "netMargin": "String" } ],

@@ -13,6 +13,7 @@ if (missing.length) {
 }
 
 const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
 
 export const config = {
   port: parseInt(process.env.PORT || '4000', 10),
@@ -31,6 +32,8 @@ export const config = {
   finnhubApiKey: process.env.FINNHUB_API_KEY || '',
   geminiAnalyzeModel: process.env.GEMINI_ANALYZE_MODEL || GEMINI_DEFAULT_MODEL,
   geminiChatModel: process.env.GEMINI_CHAT_MODEL || GEMINI_DEFAULT_MODEL,
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  openaiChatModel: process.env.OPENAI_CHAT_MODEL || OPENAI_DEFAULT_MODEL,
   langchainAnalystEnabled: process.env.LANGCHAIN_ANALYST_ENABLED === 'true',
   nodeEnv,
   logLevel: defaultLogLevel,

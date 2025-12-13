@@ -1,5 +1,7 @@
 import { BaseMessage } from '@langchain/core/messages';
 import { QuarterFinancial } from '../langchain/tools/financialDataTool.js';
+import { FinancialRatioResult } from '../langchain/tools/financialRatioDataTool.js';
+import { FinnhubEarningsSurprise } from '../clients/finnhub.js';
 
 export interface ScenarioEstimate {
   label: string;
@@ -172,5 +174,7 @@ export interface AgentState {
   ticker: string;
   report?: Partial<Report>;
   financialData?: QuarterFinancial[];
+  financialRatios?: FinancialRatioResult;
+  earningsSurprises?: FinnhubEarningsSurprise[];
   messages: BaseMessage[];
 }
