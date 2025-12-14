@@ -111,3 +111,16 @@ export const getExchangeRate = (from: string, to: string) =>
 
 export const getEarningsSurprises = (symbol: string) =>
   fetchJson<FinnhubEarningsSurprise[]>('/stock/earnings', { symbol });
+
+export interface FinnhubSymbolLookupResult {
+  count?: number;
+  result?: Array<{
+    description?: string;
+    displaySymbol?: string;
+    symbol?: string;
+    type?: string;
+  }>;
+}
+
+export const lookupSymbol = (query: string) =>
+  fetchJson<FinnhubSymbolLookupResult>('/search', { q: query });

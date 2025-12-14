@@ -20,6 +20,7 @@ import { apiJson, ApiError } from './services/apiClient';
 import { broadcast, subscribe } from './services/sync';
 import { fetchDashboard } from './services/dashboardClient';
 import { fetchReportById, listReports, deleteReport as deleteReportApi } from './services/reportClient';
+import { searchSymbols } from './services/symbolClient';
 import { addBookmark, listBookmarks, removeBookmark } from './services/bookmarkClient';
 import { saveReport } from './services/reportSaveClient';
 import { createAnalysisJob, AnalysisType as JobAnalysisType, JobDetail, getJobById } from './services/jobClient';
@@ -635,11 +636,29 @@ function App() {
     return () => clearInterval(interval);
   }, []); // Run continuously
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase();
     setTicker(value);
 
-    if (value.length > 0) {
+    if (value.length === 0) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const remote = await searchSymbols(value);
+      const merged = [...remote, ...POPULAR_STOCKS]
+        .filter((item, idx, arr) => arr.findIndex((t) => t.symbol === item.symbol) === idx)
+        .filter((item) =>
+          item.symbol.toUpperCase().includes(value) ||
+          (item.name || '').toUpperCase().includes(value)
+        )
+        .slice(0, 6)
+        .map((item) => ({ symbol: item.symbol, name: item.name || '' }));
+      setSuggestions(merged);
+      setShowSuggestions(true);
+    } catch (err) {
       const filtered = POPULAR_STOCKS.filter(stock =>
         stock.symbol.startsWith(value) ||
         stock.symbol.includes(value) ||
@@ -647,9 +666,6 @@ function App() {
       ).slice(0, 6);
       setSuggestions(filtered);
       setShowSuggestions(true);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
     }
   };
 
