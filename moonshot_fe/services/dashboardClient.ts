@@ -9,6 +9,7 @@ export interface DashboardResponse {
 export interface DashboardParams {
   reportsPage?: number;
   reportsPageSize?: number;
+  reportsQuery?: string;
   bookmarksPage?: number;
   bookmarksPageSize?: number;
   activityLimit?: number;
@@ -18,6 +19,7 @@ export const fetchDashboard = async (params: DashboardParams = {}): Promise<Dash
   const search = new URLSearchParams();
   if (params.reportsPage) search.set('reportsPage', String(params.reportsPage));
   if (params.reportsPageSize) search.set('reportsPageSize', String(params.reportsPageSize));
+  if (params.reportsQuery) search.set('q', params.reportsQuery);
   if (params.bookmarksPage) search.set('bookmarksPage', String(params.bookmarksPage));
   if (params.bookmarksPageSize) search.set('bookmarksPageSize', String(params.bookmarksPageSize));
   if (params.activityLimit) search.set('activityLimit', String(params.activityLimit));

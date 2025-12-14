@@ -267,6 +267,9 @@ export type AnalysisStatus = 'PROCESSING' | 'READY' | 'ERROR';
 export interface AnalysisSession {
   id: string; // Unique ID for concurrent sessions
   ticker: string;
+  jobId?: string;
+  analysisType?: 'gemini' | 'langgraph';
+  reportId?: string;
   progress: number; // 0 - 100
   status: AnalysisStatus;
   phase: string;

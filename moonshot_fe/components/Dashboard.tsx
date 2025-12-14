@@ -33,6 +33,7 @@ import {
   FileText,
   FileStack
 } from 'lucide-react';
+import JobProgressCard from './job/JobProgressCard';
 
 interface DashboardProps {
   user: UserProfile;
@@ -44,6 +45,8 @@ interface DashboardProps {
   isLoadingReportsPage?: boolean;
   isLoadingBookmarksPage?: boolean;
   isDashboardLoading?: boolean;
+  librarySearch?: string;
+  onLibrarySearchChange?: (value: string) => void;
   onSearch: (e?: React.FormEvent, ticker?: string) => void;
   onLoadReport: (item: SavedReportItem) => void;
   onDeleteReport: (item: SavedReportItem, e: React.MouseEvent) => void;
@@ -536,13 +539,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   onViewCommandCenter,
   analysisSessions,
   onViewAnalyzedReport,
-  onCancelAnalysis
+  onCancelAnalysis,
+  librarySearch = '',
+  onLibrarySearchChange
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<FilterType>('ALL');
   const [view, setView] = useState<'GRID' | 'LIST'>('GRID');
   const marketStatus = useMemo(() => Math.random() > 0.5 ? 'volatile' : 'trending up', []);
 
+  // Server-side search hydration: when search changes, reset paging and refetch via parent
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -560,9 +566,19 @@ const Dashboard: React.FC<DashboardProps> = ({
       // Logic: Only hide library items that have active sessions IF we are in the ALL view (where sessions are shown)
       // Otherwise (in filtered views like BOOKMARKED), we want to show the library items because sessions aren't displayed there.
       
+      // Hide only tickers that are currently processing (so completed sessions don't block display)
+      const processingTickers = analysisSessions.filter(s => s.status === 'PROCESSING').map(s => s.ticker);
       let items = filter === 'ALL'
-        ? reportLibrary.filter(item => !analysisSessions.some(session => session.ticker === item.ticker))
+        ? reportLibrary.filter(item => !processingTickers.includes(item.ticker))
         : reportLibrary;
+
+      const term = librarySearch.trim().toLowerCase();
+      if (term) {
+        items = items.filter((i) =>
+          i.ticker?.toLowerCase().includes(term) ||
+          i.companyName?.toLowerCase().includes(term)
+        );
+      }
 
       switch (filter) {
         case 'BOOKMARKED':
@@ -572,7 +588,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         default:
           return items;
       }
-  }, [reportLibrary, analysisSessions, filter]);
+  }, [reportLibrary, analysisSessions, filter, librarySearch]);
 
   const totalItems = filteredLibrary.length + (filter === 'ALL' ? analysisSessions.length : 0);
   const bookmarkedCount = reportLibrary.filter(i => i.isBookmarked).length;
@@ -769,20 +785,46 @@ const Dashboard: React.FC<DashboardProps> = ({
                 )}
                 </h3>
 
-                {/* View Mode Toggle */}
-                <div className="flex items-center p-1 bg-tertiary/20 rounded-lg border border-border self-start">
-                  <button 
-                    onClick={() => setView('GRID')}
-                    className={`px-3 py-1.5 rounded-sm text-xs font-medium flex items-center gap-2 transition-all ${view === 'GRID' ? 'bg-primary text-white shadow-sm' : 'text-secondary hover:text-primary hover:bg-tertiary/20'}`}
-                  >
-                      <LayoutGrid className="w-3 h-3" /> Grid
-                  </button>
-                  <button 
-                    onClick={() => setView('LIST')}
-                    className={`px-3 py-1.5 rounded-sm text-xs font-medium flex items-center gap-2 transition-all ${view === 'LIST' ? 'bg-primary text-white shadow-sm' : 'text-secondary hover:text-primary hover:bg-tertiary/20'}`}
-                  >
-                      <List className="w-3 h-3" /> List
-                  </button>
+                <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
+                  {/* Search - Dieter Rams Inspired */}
+                  <div className="relative w-full md:w-72 group">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                      <Search className="w-4 h-4 text-secondary group-focus-within:text-primary transition-colors" />
+                    </div>
+                    <input
+                      type="text"
+                      value={librarySearch}
+                      onChange={(e) => onLibrarySearchChange?.(e.target.value)}
+                      placeholder="Search library..."
+                      className="w-full pl-11 pr-10 py-2.5 rounded-full border border-border bg-surface text-sm text-primary placeholder-secondary/60 focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all shadow-sm hover:shadow-md"
+                    />
+                    {librarySearch && (
+                      <button
+                        onClick={() => onLibrarySearchChange?.('')}
+                        className="absolute inset-y-0 right-4 flex items-center text-secondary hover:text-primary transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* View Mode Toggle - Dieter Rams Inspired */}
+                  <div className="flex items-center p-1 bg-surface rounded-full border border-border shadow-sm">
+                    <button 
+                      onClick={() => setView('GRID')}
+                      className={`p-2 rounded-full transition-all duration-300 ${view === 'GRID' ? 'bg-primary text-white shadow-md transform scale-105' : 'text-secondary hover:text-primary hover:bg-tertiary/10'}`}
+                      title="Grid View"
+                    >
+                        <LayoutGrid className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setView('LIST')}
+                      className={`p-2 rounded-full transition-all duration-300 ${view === 'LIST' ? 'bg-primary text-white shadow-md transform scale-105' : 'text-secondary hover:text-primary hover:bg-tertiary/10'}`}
+                      title="List View"
+                    >
+                        <List className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
             </div>
 
@@ -806,23 +848,34 @@ const Dashboard: React.FC<DashboardProps> = ({
             ) : totalItems === 0 ? (
               <div className="bg-surface rounded-sm p-12 border border-border border-dashed flex flex-col items-center justify-center text-center min-h-[300px] animate-fade-in">
               <div className="w-16 h-16 bg-tertiary/20 rounded-full flex items-center justify-center mb-4">
-                  {filter === 'BOOKMARKED' ? <Bookmark className="w-8 h-8 text-secondary" /> :
+                  {librarySearch ? <Search className="w-8 h-8 text-secondary" /> :
+                  filter === 'BOOKMARKED' ? <Bookmark className="w-8 h-8 text-secondary" /> :
                   filter === 'BULLISH' ? <TrendingUp className="w-8 h-8 text-secondary" /> :
                   <FileStack className="w-8 h-8 text-secondary" />}
               </div>
               
               <h4 className="text-xl font-semibold text-primary mb-2">
-                  {filter === 'ALL' ? "Your library is empty" : "No reports match this filter"}
+                  {librarySearch ? "No results found" :
+                   filter === 'ALL' ? "Your library is empty" : "No reports match this filter"}
               </h4>
               
               <p className="text-secondary max-w-sm mb-6">
-                  {filter === 'ALL' 
-                      ? 'Search for a stock ticker above and click "Initiate" to generate your first AI-powered equity report.' 
-                      : `We couldn't find any items in your library matching the "${filter.replace('_', ' ')}" criteria.`
+                  {librarySearch 
+                      ? `We couldn't find any reports matching "${librarySearch}". Try a different search term or generate a new report.`
+                      : filter === 'ALL' 
+                          ? 'Search for a stock ticker above and click "Initiate" to generate your first AI-powered equity report.' 
+                          : `We couldn't find any items in your library matching the "${filter.replace('_', ' ')}" criteria.`
                   }
               </p>
               
-              {filter === 'ALL' ? (
+              {librarySearch ? (
+                  <button 
+                      onClick={() => onLibrarySearchChange?.('')} 
+                      className="bg-primary text-white px-4 py-2 rounded-sm font-medium text-sm hover:opacity-90 transition-colors"
+                  >
+                      Clear Search
+                  </button>
+              ) : filter === 'ALL' ? (
                   <button 
                       onClick={onViewSample} 
                       className="text-primary hover:text-primary/80 text-sm font-bold flex items-center gap-1 border-b border-primary pb-0.5"
@@ -841,15 +894,26 @@ const Dashboard: React.FC<DashboardProps> = ({
             ) : (
               <div className={view === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr" : "flex flex-col gap-3"}>
                 {/* 1. Active / Processing Sessions (Always First, only show if ALL filter) */}
-                {filter === 'ALL' && analysisSessions.map((session) => (
-                    <LibraryCard 
-                        key={session.id} 
-                        session={session} 
-                        onClick={() => session.status === 'READY' && onViewAnalyzedReport(session.id)}
-                        onAction={(e) => { e.stopPropagation(); onCancelAnalysis(session.id); }}
-                        viewMode={view}
+                {filter === 'ALL' && analysisSessions
+                  .filter((session) => session.status === 'PROCESSING')
+                  .map((session) => {
+                  const jobStatus = session.status === 'READY' ? 'completed' : session.status === 'ERROR' ? 'failed' : 'processing';
+                  return (
+                    <JobProgressCard
+                      key={session.id}
+                      ticker={session.ticker}
+                      status={jobStatus as any}
+                      analysisType={(session as any).analysisType || 'gemini'}
+                      progress={session.progress}
+                      phase={session.phase}
+                      error={session.error}
+                      startedAt={undefined}
+                      createdAt={undefined}
+                      onCancel={() => onCancelAnalysis(session.id)}
+                      onView={() => session.status === 'READY' && onViewAnalyzedReport(session.id)}
                     />
-                ))}
+                  );
+                })}
 
                 {/* 2. Library Items */}
                 {filteredLibrary.map((item) => {

@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({
           title="Return to Dashboard"
         >
         <div className="p-1">
-          <Rocket className="w-6 h-6 text-primary" strokeWidth={1.5} />
+          <img src="/favicon.svg" alt="Ultramagnus" className="w-6 h-6" />
         </div>
         <div>
           <h1 className="text-lg font-sans font-semibold text-primary tracking-tight">

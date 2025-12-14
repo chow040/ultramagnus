@@ -5,6 +5,13 @@ ALTER TABLE user_profiles
 DROP CONSTRAINT IF EXISTS user_profiles_id_fkey;
 
 -- Add the correct foreign key constraint pointing to auth_users
-ALTER TABLE user_profiles 
-ADD CONSTRAINT user_profiles_id_auth_users_fkey 
-FOREIGN KEY (id) REFERENCES auth_users(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_id_auth_users_fkey'
+  ) THEN
+    ALTER TABLE user_profiles 
+    ADD CONSTRAINT user_profiles_id_auth_users_fkey 
+    FOREIGN KEY (id) REFERENCES auth_users(id) ON DELETE CASCADE;
+  END IF;
+END $$;

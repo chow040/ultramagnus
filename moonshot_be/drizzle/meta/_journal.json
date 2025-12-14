@@ -50,6 +50,20 @@
       "when": 1764457220000,
       "tag": "0006_saved_reports_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1765645349248,
+      "tag": "0007_bent_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1765646035252,
+      "tag": "0008_aberrant_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }

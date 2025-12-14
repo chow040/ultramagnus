@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import ReportCard, { ReportCardSkeleton } from './components/ReportCard';
 import Dashboard from './components/Dashboard';
@@ -9,7 +9,6 @@ import LandingPage from './components/LandingPage';
 import { TickerCommandCenterMockup } from './components/TickerCommandCenterMockup';
 import FinancialsMock from './components/FinancialsMock';
 
-import { streamEquityReport } from './services/geminiService';
 import { EquityReport, LoadingState, SavedReportItem, UserProfile, AnalysisSession, DashboardView, DashboardError } from './types';
 import { Search, Loader2, Sparkles, Eye, TrendingUp, TrendingDown, Minus, Bookmark, X, ArrowRight, Database, ExternalLink } from 'lucide-react';
 import { AuthModalContext, trackAuthModalEvent, trackDashboardEvent } from './services/analytics';
@@ -23,6 +22,8 @@ import { fetchDashboard } from './services/dashboardClient';
 import { fetchReportById, listReports, deleteReport as deleteReportApi } from './services/reportClient';
 import { addBookmark, listBookmarks, removeBookmark } from './services/bookmarkClient';
 import { saveReport } from './services/reportSaveClient';
+import { createAnalysisJob, AnalysisType as JobAnalysisType, JobDetail, getJobById } from './services/jobClient';
+import { useJobPolling, loadActiveJobs, removeActiveJob } from './src/hooks/useJobPolling';
 
 const getStoredUser = (): UserProfile | null => {
   if (typeof window === 'undefined') return null;
@@ -33,6 +34,37 @@ const getStoredUser = (): UserProfile | null => {
   } catch {
     return null;
   }
+};
+
+const getAnalysisType = (): JobAnalysisType => {
+  const flag = import.meta.env.VITE_LANGGRAPH_ANALYST_ENABLED;
+  return flag === 'true' ? 'langgraph' : 'gemini';
+};
+
+type JobPollerProps = {
+  session: AnalysisSession;
+  onComplete: (detail: JobDetail) => void;
+  onFail: (detail: JobDetail) => void;
+  onProgress: (sessionId: string, detail: JobDetail) => void;
+};
+
+const JobPoller = ({ session, onComplete, onFail, onProgress }: JobPollerProps) => {
+  const jobState = useJobPolling({
+    jobId: session.jobId || null,
+    enabled: session.status === 'PROCESSING',
+    initialStatus: 'processing',
+    onComplete,
+    onFail
+  });
+
+  useEffect(() => {
+    if (!jobState.detail || !session.jobId) return;
+    if (jobState.detail.status === 'processing' || jobState.detail.status === 'retrying' || jobState.detail.status === 'pending') {
+      onProgress(session.id, jobState.detail);
+    }
+  }, [jobState.detail, session.id, session.jobId, onProgress]);
+
+  return null;
 };
 
 const SAMPLE_REPORT: EquityReport = {
@@ -391,7 +423,7 @@ function App() {
 // Guest Usage Tracking
 
 // Unified Report Library (Auto-saved history + Bookmarked items)
-const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
+  const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   const [saveIssues, setSaveIssues] = useState<{ ticker: string; payload: EquityReport; message: string; status?: number }[]>([]);
   const [reportLoadError, setReportLoadError] = useState<{ ticker: string; message: string; status?: number } | null>(null);
   const [bookmarkError, setBookmarkError] = useState<{ ticker: string; message: string } | null>(null);
@@ -404,6 +436,8 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   const [isLoadingReportsPage, setIsLoadingReportsPage] = useState(false);
   const [isLoadingBookmarksPage, setIsLoadingBookmarksPage] = useState(false);
   const [staleBookmarkMessages, setStaleBookmarkMessages] = useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<SavedReportItem | null>(null);
+  const [librarySearch, setLibrarySearch] = useState('');
 
   // Load User from stored session
   useEffect(() => {
@@ -561,8 +595,8 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
 
   useEffect(() => {
     if (!user || viewMode !== 'DASHBOARD') return;
-    loadDashboardData();
-  }, [user?.id, viewMode]);
+    loadDashboardData(librarySearch);
+  }, [user?.id, viewMode, librarySearch]);
 
   // PROGRESS SIMULATION EFFECT
   useEffect(() => {
@@ -706,7 +740,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     setIsLoadingReportsPage(true);
     try {
       const nextPage = reportsPage + 1;
-      const resp = await listReports(nextPage, REPORT_PAGE_SIZE);
+      const resp = await listReports(nextPage, REPORT_PAGE_SIZE, librarySearch);
       setReportsPage(nextPage);
       setHasMoreReports(resp.total > resp.page * resp.pageSize);
       syncLibraryWithData(resp.items, []);
@@ -832,17 +866,14 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     }
     setShowSuggestions(false);
 
-    if (analysisSessions.some(s => s.ticker === targetTicker && s.status === 'PROCESSING')) {
-      logger.info('analysis.session.skipped', { meta: { ticker: targetTicker, reason: 'duplicate_active' } });
-      return;
-    }
-
     const sessionId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
     const startedAt = performance.now();
+    const analysisType: JobAnalysisType = getAnalysisType();
 
     const newSession: AnalysisSession = {
       id: sessionId,
       ticker: targetTicker,
+      analysisType,
       progress: 0,
       status: 'PROCESSING',
       phase: ANALYSIS_PHASES[0]
@@ -852,69 +883,14 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     logger.info('analysis.session.start', { correlationId: sessionId, meta: { ticker: targetTicker } });
 
     try {
-      let data: EquityReport;
       setAnalysisSessions(prev => prev.map(s => {
         if (s.id !== sessionId) return s;
-        const nextProgress = Math.min(75, (s.progress || 0) + 10);
-        return { ...s, progress: nextProgress, phase: 'Generating report...' };
+        const nextProgress = Math.min(50, (s.progress || 0) + 10);
+        return { ...s, progress: nextProgress, phase: 'Queued for analysis...' };
       }));
 
-      data = await streamEquityReport(targetTicker, (chunk) => {
-        setAnalysisSessions(prev => prev.map(s => {
-          if (s.id !== sessionId) return s;
-          const bump = Math.max(1, Math.min(5, Math.round(chunk.length / 200)));
-          const nextProgress = Math.min(95, (s.progress || 0) + bump);
-          return { ...s, progress: nextProgress, phase: 'Streaming report...' };
-        }));
-      });
-
-      setAnalysisSessions(prev => prev.map(s => {
-        if (s.id !== sessionId) return s;
-        return {
-          ...s,
-          progress: 100,
-          status: 'READY',
-          phase: "Report Declassified. Ready for viewing.",
-          result: data
-        };
-      }));
-
-      logger.info('analysis.session.success', {
-        correlationId: sessionId,
-        meta: { ticker: data.ticker, durationMs: Math.round(performance.now() - startedAt) }
-      });
-
-      const newItem: SavedReportItem = {
-        ticker: data.ticker,
-        companyName: data.companyName,
-        currentPrice: data.currentPrice,
-        priceChange: data.priceChange,
-        verdict: data.verdict,
-        addedAt: Date.now(),
-        fullReport: data,
-        isBookmarked: false
-      };
-
-      // Persist report for authenticated users
-      if (user) {
-        try {
-          const reportId = await saveReport(data);
-          newItem.id = reportId;
-          logger.info('reports.save.success', { meta: { reportId, ticker: data.ticker } });
-        } catch (err) {
-          rememberSaveIssue(data.ticker, data, err);
-          newItem.saveFailed = true;
-          newItem.saveError = (err as any)?.message || 'Failed to save report';
-          logger.captureError(err, { meta: { stage: 'reports.save', ticker: data.ticker } });
-        }
-      }
-
-      setReportLibrary(prev => {
-        const filtered = prev.filter(i => i.ticker !== newItem.ticker);
-        return [newItem, ...filtered];
-      });
-
-      logger.info('library.report.saved', { correlationId: sessionId, meta: { ticker: data.ticker } });
+      const job = await createAnalysisJob(targetTicker, analysisType);
+      setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? { ...s, jobId: job.jobId, phase: 'Job submitted', progress: 25 } : s));
     } catch (err: any) {
       logger.captureError(err, {
         correlationId: sessionId,
@@ -935,6 +911,12 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
         };
       }));
     }
+  };
+
+  const closeReportView = () => {
+    setReport(null);
+    setActiveReportId(null);
+    setViewMode('DASHBOARD');
   };
 
   // Modified to open modal instead of changing view mode
@@ -966,6 +948,67 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   const handleCancelAnalysis = (sessionId: string) => {
     setAnalysisSessions(prev => prev.filter(s => s.id !== sessionId));
     logger.info('analysis.session.cancelled', { correlationId: sessionId });
+  };
+
+  const handleJobProgress = useCallback((sessionId: string, detail: JobDetail) => {
+    setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? {
+      ...s,
+      phase: `Job ${detail.status}...`,
+      progress: Math.min(95, (s.progress || 0) + 3),
+      reportId: detail.reportId ?? s.reportId
+    } : s));
+  }, []);
+
+  const handleJobFail = (sessionId: string, detail: JobDetail) => {
+    setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? {
+      ...s,
+      status: 'ERROR',
+      progress: 0,
+      phase: 'Analysis failed',
+      error: detail.error || 'Analysis failed'
+    } : s));
+  };
+
+  const handleJobComplete = async (sessionId: string, detail: JobDetail) => {
+    if (!detail.reportId) {
+      handleJobFail(sessionId, detail);
+      return;
+    }
+    try {
+      const data = await fetchReportById(detail.reportId);
+      if (!data?.ticker) throw new Error('Report payload missing ticker');
+      setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? {
+        ...s,
+        progress: 100,
+        status: 'READY',
+        phase: 'Report ready.',
+        result: data,
+        reportId: detail.reportId
+      } : s));
+
+      const newItem: SavedReportItem = {
+        ticker: data.ticker,
+        companyName: data.companyName,
+        currentPrice: data.currentPrice,
+        priceChange: data.priceChange,
+        verdict: data.verdict,
+        addedAt: Date.now(),
+        fullReport: data,
+        id: detail.reportId
+      };
+      setReportLibrary(prev => {
+        const filtered = prev.filter(i => i.ticker !== newItem.ticker);
+        return [newItem, ...filtered];
+      });
+
+      logger.info('analysis.session.success', {
+        correlationId: sessionId,
+        meta: { ticker: data.ticker }
+      });
+    } catch (err: any) {
+      handleJobFail(sessionId, detail);
+      logger.captureError(err, { meta: { action: 'report.fetch.after_job', reportId: detail.reportId } });
+    }
   };
 
   // Smart Navigation (Logo Click)
@@ -1034,9 +1077,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     trackDashboardEvent({ action: 'bookmark_toggle', userId: user?.id, ticker: item.ticker, isBookmarked: nextIsBookmarked });
   };
 
-  // Permanently Remove from Library
-  const deleteReport = async (itemToRemove: SavedReportItem, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const performDelete = async (itemToRemove: SavedReportItem) => {
     if (!itemToRemove.id) {
       // Local-only removal if no persisted id
       setReportLibrary(reportLibrary.filter(item => item.ticker !== itemToRemove.ticker));
@@ -1052,6 +1093,20 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     }
   };
 
+  // Trigger delete confirmation modal
+  const deleteReport = (itemToRemove: SavedReportItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPendingDelete(itemToRemove);
+  };
+
+  const confirmDeleteReport = async () => {
+    if (!pendingDelete) return;
+    await performDelete(pendingDelete);
+    setPendingDelete(null);
+  };
+
+  const cancelDeleteReport = () => setPendingDelete(null);
+
   const loadReport = async (item: SavedReportItem) => {
     setReportLoadError(null);
     if (item.fullReport) {
@@ -1066,9 +1121,10 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     // If we have a server ID, fetch the stored report
     if (item.id) {
       try {
-        const reportResp = await fetchReportById(item.id);
-        setReport(reportResp.payload);
+        const reportPayload = await fetchReportById(item.id);
+        setReport(reportPayload);
         setActiveReportId(item.id);
+        setReportLibrary(prev => prev.map(r => r.id === item.id ? { ...r, fullReport: reportPayload } : r));
         setViewMode('REPORT');
         logger.info('library.report.loaded_remote', { meta: { reportId: item.id, ticker: item.ticker } });
         trackDashboardEvent({ action: 'report_open', userId: user?.id, ticker: item.ticker });
@@ -1132,12 +1188,12 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
     logger.info('auth.modal.opened', { meta: { context, initialMode } });
   };
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (search?: string) => {
     if (!user) return;
     setIsDashboardLoading(true);
     try {
       const [reportsResp, bookmarksResp] = await Promise.all([
-        listReports(1, REPORT_PAGE_SIZE),
+        listReports(1, REPORT_PAGE_SIZE, search),
         listBookmarks(1, BOOKMARK_PAGE_SIZE)
       ]);
 
@@ -1151,6 +1207,7 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
       setHasMoreBookmarks(bookmarksResp.total > bookmarksResp.page * bookmarksResp.pageSize);
 
       syncLibraryWithData(reportsResp.items, bookmarksResp.items);
+
     } catch (err: any) {
       logger.captureError(err, { meta: { stage: 'dashboard.fetch' } });
       setDashboardErrors([{ section: 'reports', message: err?.message || 'Failed to load dashboard' }]);
@@ -1180,6 +1237,63 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
   const customKey = localStorage.getItem('ultramagnus_user_api_key');
   const isTeaserMode = !user && !customKey && report?.ticker !== 'ASTRO';
 
+  useEffect(() => {
+    if (isBootstrapping) return;
+    const resumeActiveJobs = async () => {
+      const activeIds = loadActiveJobs();
+      if (!activeIds.length) return;
+      for (const jobId of activeIds) {
+        try {
+          const detail = await getJobById(jobId);
+          const status = detail.status;
+          const baseSession: AnalysisSession = {
+            id: `resume-${jobId}`,
+            ticker: detail.ticker,
+            analysisType: detail.analysisType as JobAnalysisType,
+            jobId: detail.id,
+            reportId: detail.reportId || undefined,
+            progress: status === 'completed' ? 100 : 10,
+            status: status === 'completed' ? 'READY' : status === 'failed' ? 'ERROR' : 'PROCESSING',
+            phase: status === 'completed' ? 'Report ready.' : `Job ${status}...`,
+            error: detail.error || undefined
+          };
+
+          if (status === 'completed' && detail.reportId) {
+            try {
+              const data = await fetchReportById(detail.reportId);
+              baseSession.result = data;
+              setReportLibrary(prev => {
+                const filtered = prev.filter(i => i?.ticker && data.ticker && i.ticker !== data.ticker);
+                return [{
+                  ticker: data.ticker,
+                  companyName: data.companyName,
+                  currentPrice: data.currentPrice,
+                  priceChange: data.priceChange,
+                  verdict: data.verdict,
+                  addedAt: Date.now(),
+                  fullReport: data,
+                  id: detail.reportId
+                }, ...filtered];
+              });
+              removeActiveJob(jobId);
+            } catch (err) {
+              // leave in ready/error state; user can retry manually
+            }
+          }
+
+          setAnalysisSessions(prev => {
+            const existing = prev.find(s => s.jobId === jobId || s.id === baseSession.id);
+            if (existing) return prev;
+            return [baseSession, ...prev];
+          });
+        } catch (err) {
+          removeActiveJob(jobId);
+        }
+      }
+    };
+    resumeActiveJobs();
+  }, [isBootstrapping, fetchReportById, setReportLibrary]);
+
   if (isBootstrapping) {
     return (
       <div className="min-h-screen bg-background text-primary flex items-center justify-center">
@@ -1193,6 +1307,15 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
 
   return (
     <div className="min-h-screen font-sans bg-background text-primary relative overflow-hidden pb-20 selection:bg-secondary/20">
+      {analysisSessions.filter(s => s.jobId && s.status === 'PROCESSING').map((session) => (
+        <JobPoller
+          key={session.id}
+          session={session}
+          onComplete={(detail) => handleJobComplete(session.id, detail)}
+          onFail={(detail) => handleJobFail(session.id, detail)}
+          onProgress={handleJobProgress}
+        />
+      ))}
 
       {/* MINIMALIST BACKGROUND */}
       <div className="fixed inset-0 z-0 pointer-events-none bg-background"></div>
@@ -1349,6 +1472,8 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
                 isLoadingReportsPage={isLoadingReportsPage}
                 isLoadingBookmarksPage={isLoadingBookmarksPage}
                 isDashboardLoading={isDashboardLoading}
+                librarySearch={librarySearch}
+                onLibrarySearchChange={setLibrarySearch}
                 onSearch={handleSearch}
                 onLoadReport={loadReport}
                 onDeleteReport={deleteReport}
@@ -1373,12 +1498,38 @@ const [reportLibrary, setReportLibrary] = useState<SavedReportItem[]>([]);
                     onToggleBookmark={toggleBookmarkReport}
                     isTeaserMode={isTeaserMode}
                     onUnlock={() => handleOpenAuth('lock')}
+                    onBack={closeReportView}
                   />
                 )}
               </div>
             )}
 
           </main>
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface border border-border rounded-sm shadow-2xl max-w-md w-full p-6 space-y-4 animate-fade-in-up">
+            <div className="text-sm font-semibold text-primary tracking-wide uppercase">Confirm Delete</div>
+            <p className="text-sm text-secondary leading-relaxed">
+              Remove the report for <span className="font-mono text-primary">{pendingDelete.ticker}</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelDeleteReport}
+                className="px-4 py-2 text-sm font-medium text-secondary border border-border rounded-sm hover:bg-tertiary/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteReport}
+                className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-sm hover:opacity-90 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -59,6 +59,7 @@ export interface DashboardFilters {
   reportsPageSize?: number;
   reportsStatus?: string;
   reportsType?: string;
+  reportsQuery?: string;
   bookmarksPage?: number;
   bookmarksPageSize?: number;
   activityLimit?: number;

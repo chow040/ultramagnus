@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Rocket, ArrowRight, Shield, Zap, BarChart3, Brain, Terminal, TrendingUp } from 'lucide-react';
+import { Rocket, ArrowRight, Shield, Zap, BarChart3, Brain, Terminal, TrendingUp, User } from 'lucide-react';
 
 interface LandingPageProps {
   onStartAnalysis: () => void;
@@ -12,19 +12,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartAnalysis, onViewDemo, 
   return (
     <div className="relative z-20 min-h-screen flex flex-col font-sans bg-background text-primary">
       {/* Navigation */}
-      <nav className="w-full px-6 py-6 md:px-12 border-b border-border bg-surface/90 backdrop-blur-sm fixed top-0 z-50">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={onStartAnalysis}>
+      <nav className="w-full border-b border-border bg-surface/90 backdrop-blur-sm fixed top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => window.location.reload()}>
             <div className="p-1">
-              <Rocket className="w-5 h-5 text-primary" strokeWidth={1.5} />
+              <img src="/favicon.svg" alt="Ultramagnus" className="w-6 h-6" />
             </div>
-            <span className="text-lg font-semibold text-primary tracking-tight">Ultramagnus</span>
+            <span className="text-lg font-sans font-semibold text-primary tracking-tight">Ultramagnus</span>
           </div>
           <div className="flex items-center gap-6">
             <button 
               onClick={onLogin}
-              className="text-sm font-medium text-secondary hover:text-primary transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-sm bg-primary hover:opacity-90 text-white text-xs font-bold transition-all shadow-sm"
             >
+              <User className="w-4 h-4" />
               Sign In
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 
 export const authUsers = pgTable('auth_users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -95,3 +95,22 @@ export const conversationSummaries = pgTable('conversation_summaries', {
   tokensEstimate: integer('tokens_estimate'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
 });
+
+export const analysisJobs = pgTable('analysis_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  ticker: text('ticker').notNull(),
+  analysisType: text('analysis_type').notNull().default('gemini'),
+  status: text('status').notNull().default('pending'),
+  priority: integer('priority').notNull().default(0),
+  reportId: uuid('report_id'),
+  error: text('error'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true })
+}, (table) => ({
+  idxAnalysisJobsUserStatus: index('idx_analysis_jobs_user_status').on(table.userId, table.status),
+  idxAnalysisJobsTickerCreated: index('idx_analysis_jobs_ticker_created').on(table.ticker, table.createdAt),
+  idxAnalysisJobsStatusCreated: index('idx_analysis_jobs_status_created').on(table.status, table.createdAt)
+}));

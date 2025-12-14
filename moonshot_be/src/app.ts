@@ -14,6 +14,8 @@ import { reportsRouter } from './routes/reports.js';
 import { bookmarksRouter } from './routes/bookmarks.js';
 import { conversationRouter } from './routes/conversation.js';
 import { marketDataRouter } from './routes/marketData.js';
+import { jobsRouter } from './routes/jobs.js';
+import { profileRouter } from './routes/profile.js';
 import { correlationIdMiddleware } from './middleware/correlationId.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -55,6 +57,8 @@ export const createApp = () => {
   app.use('/api', aiChatRouter);
   app.use('/api', aiAnalysisRouter);
   app.use('/api', aiAnalysisLanggraphRouter);
+  app.use('/api', jobsRouter);
+  app.use('/api', profileRouter);
 
   // 404 handler
   app.use((req, res) => {

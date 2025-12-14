@@ -168,7 +168,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
       <div className="relative w-full max-w-md bg-surface rounded-sm border border-border shadow-xl overflow-hidden animate-fade-in-up">
         {/* Decor */}
         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-           <Rocket className="w-40 h-40 text-primary" />
+           <img src="/favicon.svg" alt="Ultramagnus" className="w-40 h-40 grayscale" />
         </div>
         
         <button 
@@ -215,7 +215,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, message
             <>
               <div className="mb-6">
                 <div className="w-10 h-10 bg-tertiary/30 rounded-sm flex items-center justify-center mb-4">
-                  <Rocket className="w-5 h-5 text-primary" strokeWidth={1.5} />
+                  <img src="/favicon.svg" alt="Ultramagnus" className="w-5 h-5" />
                 </div>
                 <h2 className="text-2xl font-sans font-semibold text-primary">
                   {isLoginMode ? "Welcome Back" : "Create Account"}

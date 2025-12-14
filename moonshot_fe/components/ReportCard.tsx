@@ -2,9 +2,10 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { EquityReport, PricePoint, FinancialYear, SavedReportItem, FactorAnalysis } from '../types';
-import { streamChatWithGemini } from '../services/geminiService';
+// Streaming chat removed with job queue integration; keep placeholder for future LLM chat if needed.
 import { fetchConversation } from '../services/conversationClient';
 import { apiJson } from '../services/apiClient';
+import { streamChatWithGemini } from '../services/geminiService';
 import { FundamentalAssessment } from './FundamentalAssessment';
 import { 
   Target, 
@@ -50,6 +51,7 @@ import {
   Lightbulb,
   History,
   ArrowRight,
+  ArrowLeft,
   Clock,
   FolderCheck,
   MessageSquare,
@@ -88,6 +90,7 @@ interface ReportCardProps {
   onToggleBookmark: (item: SavedReportItem) => void;
   isTeaserMode?: boolean;
   onUnlock?: () => void;
+  onBack?: () => void;
 }
 
 // Helper to parse price strings "$150.00" -> 150.00
@@ -798,7 +801,7 @@ const ChatWidget = ({
   );
 };
 
-const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked, onToggleBookmark, isTeaserMode = false, onUnlock }) => {
+const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked, onToggleBookmark, isTeaserMode = false, onUnlock, onBack }) => {
   const [chartTab, setChartTab] = useState<'financials' | 'price' | 'peers'>('price');
   const [finSubTab, setFinSubTab] = useState<'overview' | 'table'>('overview');
   const [feedback, setFeedback] = useState<'yes' | 'no' | null>(null);
@@ -912,7 +915,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
 
 
   // Earnings Analysis Helpers
-  const earnings = report.earningsCallAnalysis;
+  const earnings = report.earningsCallAnalysis || { sentiment: 'Neutral', summary: '', keyTakeaways: [] };
   const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-green-500/10 border-green-500/20' 
     : earnings.sentiment === 'Bearish' ? 'text-red-400 bg-red-500/10 border-red-500/20'
     : 'text-amber-400 bg-amber-500/10 border-amber-500/20';
@@ -1169,6 +1172,15 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
   return (
     <div ref={reportRef} className="space-y-8 animate-fade-in-up pb-10">
       
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm text-secondary hover:text-primary transition-colors mb-[-1rem] print:hidden"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </button>
+      )}
+
       {/* 1. Header & Identity */}
       <div className="bg-surface rounded-sm p-6 md:p-8 border border-border relative overflow-hidden">
         

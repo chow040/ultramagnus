@@ -68,3 +68,35 @@ export const validateReportSave = (body: ReportSaveInput): ValidationResult<Vali
     }
   };
 };
+
+export const validateTicker = (ticker: unknown): ValidationResult<{ ticker: string }> => {
+  if (typeof ticker !== 'string') {
+    return { ok: false, status: 400, message: 'ticker must be a string' };
+  }
+  const normalized = ticker.trim().toUpperCase();
+  if (!normalized.length) {
+    return { ok: false, status: 400, message: 'ticker is required' };
+  }
+  if (!/^[A-Z0-9.-]{1,10}$/.test(normalized)) {
+    return { ok: false, status: 400, message: 'ticker must be 1-10 chars (A-Z, 0-9, dot, dash)' };
+  }
+  return { ok: true, data: { ticker: normalized } };
+};
+
+export const clampJobListLimit = (limit?: number) => {
+  const safe = Number.isFinite(limit as number) ? Number(limit) : 20;
+  return Math.max(1, Math.min(safe, 100));
+};
+
+export type AnalysisType = 'gemini' | 'langgraph';
+
+export const validateAnalysisType = (value: unknown): ValidationResult<{ analysisType: AnalysisType }> => {
+  if (typeof value !== 'string') {
+    return { ok: true, data: { analysisType: 'gemini' } };
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'gemini' || normalized === 'langgraph') {
+    return { ok: true, data: { analysisType: normalized as AnalysisType } };
+  }
+  return { ok: false, status: 400, message: 'analysisType must be gemini or langgraph' };
+};

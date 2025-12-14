@@ -1,1 +1,1 @@
-ALTER TABLE "auth_users" ADD COLUMN "refresh_token_hash" text;
+ALTER TABLE "auth_users" ADD COLUMN IF NOT EXISTS "refresh_token_hash" text;

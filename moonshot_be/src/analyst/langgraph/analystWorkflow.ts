@@ -14,10 +14,20 @@ const initialState = (ticker: string): AgentState => ({
 
 export const runAnalystGraph = async (ticker: string) => {
   let state: AgentState = initialState(ticker);
-  state = { ...state, ...(await marketAnalystNode(state)) };
-  state = { ...state, ...(await fetchFinancialsNode(state)) };
-  state = { ...state, ...(await fetchFinancialRatiosNode(state)) };
-  state = { ...state, ...(await equityAnalystNode(state)) };
+  logger.info({ message: 'langgraph.run.start', ticker });
+
+  state = { ...state, ...(await safeStep('market_analyst', ticker, () => marketAnalystNode(state))) };
+  logger.info({ message: 'langgraph.run.after_market', ticker });
+
+  state = { ...state, ...(await safeStep('fetch_financials', ticker, () => fetchFinancialsNode(state))) };
+  logger.info({ message: 'langgraph.run.after_financials', ticker });
+
+  state = { ...state, ...(await safeStep('fetch_financial_ratios', ticker, () => fetchFinancialRatiosNode(state))) };
+  logger.info({ message: 'langgraph.run.after_financial_ratios', ticker });
+
+  state = { ...state, ...(await safeStep('equity_analyst', ticker, () => equityAnalystNode(state))) };
+  logger.info({ message: 'langgraph.run.after_equity', ticker });
+
   return { ...state, messages: [] };
 };
 
@@ -45,7 +55,7 @@ async function withTimeout<T>(
   promise: Promise<T>,
   label: string,
   ticker: string,
-  ms = 300000
+  ms = 180000
 ): Promise<T> {
   let timer: NodeJS.Timeout;
   return Promise.race([

@@ -81,6 +81,9 @@
     ```
 - **Report Save API**:
   - Uses existing `PUT /api/reports/:id` (or similar) to save the updated payload.
+- **Library Search (supporting chat/report workflows)**:
+  - `GET /api/reports?page=1&pageSize=10&q=TSLA` — server-side search by ticker/title, case-insensitive.
+  - `GET /api/dashboard?...&q=TSLA` — forwards `q` to reports listing so the dashboard/side panel can search across all reports, not just visible items.
 
 ## UX/UI Flow
 1.  **Open Report**: User opens a saved report. Generative Section is visible.

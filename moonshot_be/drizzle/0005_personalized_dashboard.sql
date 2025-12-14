@@ -1,4 +1,4 @@
-CREATE TABLE "reports" (
+CREATE TABLE IF NOT EXISTS "reports" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"owner_id" uuid NOT NULL,
 	"title" text NOT NULL,
@@ -10,11 +10,11 @@ CREATE TABLE "reports" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "reports_owner_updated_idx" ON "reports" USING btree ("owner_id","updated_at");
+CREATE INDEX IF NOT EXISTS "reports_owner_updated_idx" ON "reports" USING btree ("owner_id","updated_at");
 --> statement-breakpoint
-CREATE INDEX "reports_owner_ticker_idx" ON "reports" USING btree ("owner_id","ticker");
+CREATE INDEX IF NOT EXISTS "reports_owner_ticker_idx" ON "reports" USING btree ("owner_id","ticker");
 --> statement-breakpoint
-CREATE TABLE "bookmarks" (
+CREATE TABLE IF NOT EXISTS "bookmarks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"target_id" uuid NOT NULL,
@@ -24,9 +24,9 @@ CREATE TABLE "bookmarks" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "bookmarks_user_updated_idx" ON "bookmarks" USING btree ("user_id","updated_at");
+CREATE INDEX IF NOT EXISTS "bookmarks_user_updated_idx" ON "bookmarks" USING btree ("user_id","updated_at");
 --> statement-breakpoint
-CREATE TABLE "activities" (
+CREATE TABLE IF NOT EXISTS "activities" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"target_id" uuid NOT NULL,
@@ -35,4 +35,4 @@ CREATE TABLE "activities" (
 	"occurred_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "activities_user_occurred_idx" ON "activities" USING btree ("user_id","occurred_at");
+CREATE INDEX IF NOT EXISTS "activities_user_occurred_idx" ON "activities" USING btree ("user_id","occurred_at");

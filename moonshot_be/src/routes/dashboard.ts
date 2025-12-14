@@ -12,6 +12,7 @@ dashboardRouter.get('/dashboard', requireAuth, async (req, res) => {
     reportsPageSize: Number(req.query.reportsPageSize) || 20,
     reportsStatus: typeof req.query.reportsStatus === 'string' ? req.query.reportsStatus : undefined,
     reportsType: typeof req.query.reportsType === 'string' ? req.query.reportsType : undefined,
+    reportsQuery: typeof req.query.q === 'string' ? req.query.q : undefined,
     bookmarksPage: Number(req.query.bookmarksPage) || 1,
     bookmarksPageSize: Number(req.query.bookmarksPageSize) || 20,
     activityLimit: Number(req.query.activityLimit) || 50

@@ -1,13 +1,11 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="512" height="512" rx="128" fill="#0F172A"/>
-<path d="M256 85.3333C256 85.3333 362.667 170.667 362.667 277.333C362.667 341.333 320 362.667 256 362.667C192 362.667 149.333 341.333 149.333 277.333C149.333 170.667 256 85.3333 256 85.3333Z" fill="url(#paint0_linear)"/>
-<path d="M149.333 277.333L106.667 320L149.333 320V277.333Z" fill="#6366F1"/>
-<path d="M362.667 277.333L405.333 320L362.667 320V277.333Z" fill="#A855F7"/>
-<circle cx="256" cy="234.667" r="32" fill="white"/>
-<defs>
-<linearGradient id="paint0_linear" x1="149.333" y1="362.667" x2="362.667" y2="85.3333" gradientUnits="userSpaceOnUse">
-<stop stop-color="#6366F1"/>
-<stop offset="1" stop-color="#A855F7"/>
-</linearGradient>
-</defs>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: Matte Dark Grey (Braun Audio Chassis) -->
+  <rect width="64" height="64" rx="16" fill="#1c1c1c"/>
+  
+  <!-- Stylized 'U' / Magnet Shape: Matte Silver/White (Dial Markings) -->
+  <path d="M18 18 V34 C18 42.8 25.2 50 34 50 C42.8 50 50 42.8 50 34 V18" 
+        stroke="#e6e6e6" stroke-width="8" stroke-linecap="round" fill="none"/>
+        
+  <!-- Central Core: Iconic Orange (The Action Button) -->
+  <circle cx="34" cy="34" r="6" fill="#eb5e00"/>
 </svg>

@@ -13,12 +13,14 @@ reportsRouter.get('/reports', requireAuth, async (req, res) => {
     page: Number(req.query.page) || 1,
     pageSize: Number(req.query.pageSize) || DEFAULT_PAGE_SIZE
   });
+  const q = typeof req.query.q === 'string' ? req.query.q : undefined;
 
   const filters = {
     reportsPage: page,
     reportsPageSize: pageSize,
     reportsStatus: typeof req.query.status === 'string' ? req.query.status : undefined,
-    reportsType: typeof req.query.type === 'string' ? req.query.type : undefined
+    reportsType: typeof req.query.type === 'string' ? req.query.type : undefined,
+    reportsQuery: q
   };
 
   try {

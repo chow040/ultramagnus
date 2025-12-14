@@ -1,6 +1,6 @@
 import { db } from '../db/client.js';
 import { reports } from '../db/schema.js';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, or, SQL } from 'drizzle-orm';
 import type { DashboardFilters, ReportSummary } from '../types/dashboard.js';
 import { clampPagination } from '../utils/validation.js';
 import { DEFAULT_PAGE_SIZE } from '../config/limits.js';
@@ -19,6 +19,17 @@ export const listReportsByUser = async (userId: string, filters: DashboardFilter
   }
   if (typeFilter) {
     conditions.push(eq(reports.type, typeFilter));
+  }
+  if (filters.reportsQuery) {
+    const term = `%${filters.reportsQuery.trim()}%`;
+    const searchConditions = [
+      ilike(reports.ticker, term),
+      ilike(reports.title, term)
+    ].filter(Boolean) as SQL<unknown>[];
+    if (searchConditions.length) {
+      const searchClause = or(...searchConditions) as SQL<unknown>;
+      conditions.push(searchClause);
+    }
   }
 
   const rows = await db.select()
@@ -70,6 +81,17 @@ export const listReportsPageByUser = async (
   }
   if (typeFilter) {
     conditions.push(eq(reports.type, typeFilter));
+  }
+  if (filters.reportsQuery) {
+    const term = `%${filters.reportsQuery.trim()}%`;
+    const searchConditions = [
+      ilike(reports.ticker, term),
+      ilike(reports.title, term)
+    ].filter(Boolean) as SQL<unknown>[];
+    if (searchConditions.length) {
+      const searchClause = or(...searchConditions) as SQL<unknown>;
+      conditions.push(searchClause);
+    }
   }
 
   const [rows, totalRows] = await Promise.all([
