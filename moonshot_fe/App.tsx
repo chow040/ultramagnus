@@ -39,7 +39,8 @@ const getStoredUser = (): UserProfile | null => {
 
 const getAnalysisType = (): JobAnalysisType => {
   const flag = import.meta.env.VITE_LANGGRAPH_ANALYST_ENABLED;
-  return flag === 'true' ? 'langgraph' : 'gemini';
+  // Invert: run LangChain when flag is not explicitly true
+  return flag === 'false' || flag === undefined ? 'langgraph' : 'gemini';
 };
 
 type JobPollerProps = {
@@ -906,7 +907,36 @@ function App() {
       }));
 
       const job = await createAnalysisJob(targetTicker, analysisType);
-      setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? { ...s, jobId: job.jobId, phase: 'Job submitted', progress: 25 } : s));
+    setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? { ...s, jobId: job.jobId, phase: 'Job submitted', progress: 25 } : s));
+      // If the new LangChain endpoint returned a report immediately, mark the session as ready without polling.
+      if ((job as any).report) {
+        const data: any = (job as any).report;
+        const readySession: AnalysisSession = {
+          ...newSession,
+          jobId: undefined,
+          progress: 100,
+          status: 'READY',
+          phase: 'Report ready.',
+          result: data
+        };
+        setAnalysisSessions(prev => prev.map(s => s.id === sessionId ? readySession : s));
+
+        const newItem: SavedReportItem = {
+          id: (job as any).reportId || `inline-${sessionId}`,
+          ticker: data.ticker,
+          companyName: data.companyName,
+          currentPrice: data.currentPrice,
+          priceChange: data.priceChange,
+          verdict: data.verdict,
+          addedAt: Date.now(),
+          fullReport: data
+        };
+        setReportLibrary(prev => {
+          const filtered = newItem.id ? prev.filter(i => i.id !== newItem.id) : prev;
+          return [newItem, ...filtered];
+        });
+        return;
+      }
     } catch (err: any) {
       logger.captureError(err, {
         correlationId: sessionId,
@@ -1003,17 +1033,17 @@ function App() {
       } : s));
 
       const newItem: SavedReportItem = {
+        id: detail.reportId || `job-${detail.id}`,
         ticker: data.ticker,
         companyName: data.companyName,
         currentPrice: data.currentPrice,
         priceChange: data.priceChange,
         verdict: data.verdict,
         addedAt: Date.now(),
-        fullReport: data,
-        id: detail.reportId
+        fullReport: data
       };
       setReportLibrary(prev => {
-        const filtered = prev.filter(i => i.ticker !== newItem.ticker);
+        const filtered = newItem.id ? prev.filter(i => i.id !== newItem.id) : prev;
         return [newItem, ...filtered];
       });
 

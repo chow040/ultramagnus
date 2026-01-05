@@ -1,7 +1,8 @@
 import { ensureClient, MODEL_NAME } from '../routes/aiShared.js';
 
 export const REPORT_PROMPT = (ticker: string) => `
-  Generate a comprehensive professional equity research report for ${ticker}.
+  You are a senior hedge fund analyst. Generate a comprehensive professional equity research report for ${ticker}.
+  Today's date is ${new Date().toISOString()}. Use this as the current date when determining recency, events, and the reportDate field.
   
   You MUST search for the latest real-time data including:
   1. Current Price, Day's Range, 52-Week Range, Market Cap, PE Ratio.
@@ -11,7 +12,7 @@ export const REPORT_PROMPT = (ticker: string) => `
   5. Analyst ratings and price targets (current and historical trend).
   6. Price History (Monthly closes for last 12 months).
 
-  Then, act as a senior hedge fund analyst ("Ultramagnus") and synthesize this into a JSON object.
+  Then synthesize this into a JSON object.
   Return ONLY valid JSON, no markdown, no prose. Use this exact shape:
   {
     "companyName": "String",
@@ -109,11 +110,12 @@ export const runGeminiAnalysis = async (ticker: string) => {
   const result = await client.models.generateContent({
     model: MODEL_NAME,
     contents: [{ role: 'user', parts: [{ text: REPORT_PROMPT(ticker) }] }],
-    config: { tools: [{ googleSearch: {} }] }
+    config: { tools: [{ googleSearch: {} }], temperature: 0 }
   });
 
   const text = extractText(result);
   const raw = parseReportJson(text);
+  const generatedAt = new Date().toISOString();
 
   // Normalize to expected shape with safe defaults to avoid downstream crashes
   const safe = (value: any, fallback: any) => value === undefined || value === null ? fallback : value;
@@ -122,7 +124,8 @@ export const runGeminiAnalysis = async (ticker: string) => {
   const report = {
     companyName: safe(raw.companyName, ticker),
     ticker: safe(raw.ticker, ticker),
-    reportDate: safe(raw.reportDate, new Date().toISOString()),
+    // Always stamp with generation time to avoid stale dates coming back from the model
+    reportDate: generatedAt,
     currentPrice: safe(raw.currentPrice, 'N/A'),
     priceChange: safe(raw.priceChange, 'N/A'),
     marketCap: safe(raw.marketCap, 'N/A'),

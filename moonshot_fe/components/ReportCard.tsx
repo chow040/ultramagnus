@@ -385,6 +385,13 @@ interface ChatMessage {
   kind?: 'summary' | 'message';
 }
 
+const formatDate = (value?: string | null) => {
+  if (!value) return '—';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const ChatWidget = ({
   report,
   reportId,
@@ -413,6 +420,7 @@ const ChatWidget = ({
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const materiality = (report as any)?._materiality || null;
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -817,6 +825,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   const reportRef = useRef<HTMLDivElement>(null);
+  const materiality = (report as any)?._materiality || null;
 
   // Load feedback and notes from local storage on mount/report change
   useEffect(() => {
@@ -914,11 +923,11 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
   const prevVerdictBg = report.history?.previousVerdict === 'BUY' ? 'bg-emerald-500/10' : report.history?.previousVerdict === 'SELL' ? 'bg-red-500/10' : 'bg-amber-500/10';
 
 
-  // Earnings Analysis Helpers
-  const earnings = report.earningsCallAnalysis || { sentiment: 'Neutral', summary: '', keyTakeaways: [] };
-  const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-green-500/10 border-green-500/20' 
-    : earnings.sentiment === 'Bearish' ? 'text-red-400 bg-red-500/10 border-red-500/20'
-    : 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+// Earnings Analysis Helpers
+const earnings = report.earningsCallAnalysis || { sentiment: 'Neutral', summary: '', keyTakeaways: [] };
+const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-green-500/10 border-green-500/20' 
+  : earnings.sentiment === 'Bearish' ? 'text-red-400 bg-red-500/10 border-red-500/20'
+  : 'text-amber-400 bg-amber-500/10 border-amber-500/20';
 
   // Sentiment Analysis Styling
   const overallSentiment = report.overallSentiment || { score: 50, label: "Neutral", summary: "Data unavailable" };
@@ -1254,7 +1263,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                 </div>
             </div>
             {/* Current Price */}
-            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px]">
+            <div className="p-6 flex-none h-[180px] flex flex-col items-center justify-center text-center bg-tertiary/5">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
                    <DollarSign className="w-4 h-4" /> Current Price
                 </div>
@@ -1266,7 +1275,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                 </div>
             </div>
             {/* Target Price (mobile-first so price + target stay together) */}
-            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px] lg:hidden">
+            <div className="p-6 flex-none h-[180px] flex flex-col items-center justify-center text-center bg-tertiary/5 lg:hidden">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
                    <Goal className="w-4 h-4" /> 1Y Target
                 </div>
@@ -1297,7 +1306,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                 </div>
             </div>
             {/* Target Price (desktop) */}
-            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px] hidden lg:flex">
+            <div className="p-6 flex-none h-[180px] flex flex-col items-center justify-center text-center bg-tertiary/5 hidden lg:flex">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
                    <Goal className="w-4 h-4" /> 1Y Target
                 </div>
@@ -1320,7 +1329,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-4">
                    <ShieldCheck className="w-4 h-4" /> Financial Health
                 </div>
-                <div className={`text-5xl font-mono font-medium ${healthColor} mb-4`}>
+                <div className={`text-6xl font-mono font-medium ${healthColor} mb-4`}>
                    {report.financialHealthScore || 'N/A'}
                 </div>
                 <div className="w-full max-w-[200px]">
@@ -1328,7 +1337,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                 </div>
             </div>
             {/* Momentum */}
-            <div className="p-6 flex-shrink-0 flex flex-col items-center justify-center text-center bg-tertiary/5 h-[140px]">
+            <div className="p-6 flex-none h-[180px] flex flex-col items-center justify-center text-center bg-tertiary/5">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary mb-2">
                    <Activity className="w-4 h-4" /> Momentum
                 </div>
@@ -1337,9 +1346,9 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                 </div>
                 <div className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-surface border border-border ${momentumColor}`}>
                    {momentumLabel}
-                </div>
-            </div>
-        </LockedFeature>
+              </div>
+          </div>
+       </LockedFeature>
 
       </div>
 
@@ -1356,7 +1365,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                      <span className={`px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${prevVerdictBg} ${prevVerdictColor}`}>
                         {report.history.previousVerdict}
                      </span>
-                     <span className="text-[10px] text-secondary mt-1">{report.history.previousDate}</span>
+                     <span className="text-[10px] text-secondary mt-1">{formatDate(report.history.previousDate)}</span>
                   </div>
                   <ArrowRight className="w-5 h-5 text-tertiary" />
                   <div className="flex flex-col items-center">
@@ -2315,7 +2324,18 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                   {report.recentNews.map((news, idx) => (
                      <div key={idx} className="group pl-4 border-l-2 border-border hover:border-primary transition-colors">
                         <div className="text-xs text-secondary font-mono mb-1">{news.date}</div>
-                        <p className="text-primary text-sm font-medium group-hover:text-primary transition-colors">{news.headline}</p>
+                        {news.url ? (
+                           <a 
+                              href={news.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-primary text-sm font-medium group-hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+                           >
+                              {news.headline}
+                           </a>
+                        ) : (
+                           <p className="text-primary text-sm font-medium group-hover:text-primary transition-colors">{news.headline}</p>
+                        )}
                      </div>
                   ))}
                </div>
@@ -2361,12 +2381,12 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                      Catalyst Calendar
                   </h3>
                   <div className="space-y-3">
-                     {report.upcomingEvents.map((event, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm">
-                           <div className="flex items-center gap-3">
-                              <div className="font-mono text-xs text-secondary">{event.date}</div>
+                    {report.upcomingEvents.map((event, i) => (
+                       <div key={i} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-3">
+                              <div className="font-mono text-xs text-secondary">{formatDate(event.date)}</div>
                               <div className="text-primary font-medium">{event.event}</div>
-                           </div>
+                          </div>
                            <div className={`px-2 py-0.5 text-xs font-bold rounded-sm border ${
                               event.impact === 'High' ? 'bg-red-100 text-red-600 border-red-200' :
                               event.impact === 'Medium' ? 'bg-amber-100 text-amber-600 border-amber-200' :
@@ -2399,14 +2419,14 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, reportId, isBookmarked,
                  <h4 className="text-sm font-bold text-secondary uppercase tracking-wider mb-2">Valuation Context</h4>
                  <p className="text-secondary text-sm">{report.valuation}</p>
               </div>
-           </div>
-           
-           <div className="w-full md:w-64 pt-6 md:pt-0 md:border-l border-border md:pl-8 flex flex-col gap-4">
+            </div>
+            
+            <div className="w-full md:w-64 pt-6 md:pt-0 md:border-l border-border md:pl-8 flex flex-col gap-4">
               <div>
                  <h4 className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">Sector Tags</h4>
                  <div className="flex flex-wrap gap-2">
-                    {report.tags.map(tag => (
-                       <span key={tag} className="px-2 py-1 bg-tertiary/10 text-primary text-xs rounded-sm border border-border">
+                   {report.tags.map(tag => (
+                      <span key={tag} className="px-2 py-1 bg-tertiary/10 text-primary text-xs rounded-sm border border-border">
                           #{tag}
                        </span>
                     ))}

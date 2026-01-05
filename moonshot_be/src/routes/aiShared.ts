@@ -1,7 +1,7 @@
 import { getGenAiClient } from '../clients/genai.js';
 import { config } from '../config/env.js';
 
-export const MODEL_NAME = config.geminiChatModel;
+export const MODEL_NAME = config.geminiAnalyzeModel;
 
 export const ensureClient = () => {
   try {

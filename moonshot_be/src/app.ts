@@ -13,6 +13,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { reportsRouter } from './routes/reports.js';
 import { bookmarksRouter } from './routes/bookmarks.js';
 import { conversationRouter } from './routes/conversation.js';
+import { aiAssessmentRouter } from './routes/aiAssessment.js';
 import { marketDataRouter } from './routes/marketData.js';
 import { jobsRouter } from './routes/jobs.js';
 import { profileRouter } from './routes/profile.js';
@@ -55,6 +56,7 @@ export const createApp = () => {
   app.use('/api', bookmarksRouter);
   app.use('/api', conversationRouter);
   app.use('/api', marketDataRouter);
+  app.use('/api', aiAssessmentRouter);
   app.use('/api', aiChatRouter);
   app.use('/api', aiAnalysisRouter);
   app.use('/api', aiAnalysisLanggraphRouter);

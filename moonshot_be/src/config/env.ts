@@ -32,6 +32,7 @@ export const config = {
   finnhubApiKey: process.env.FINNHUB_API_KEY || '',
   geminiAnalyzeModel: process.env.GEMINI_ANALYZE_MODEL || GEMINI_DEFAULT_MODEL,
   geminiChatModel: process.env.GEMINI_CHAT_MODEL || GEMINI_DEFAULT_MODEL,
+  geminiApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   openaiChatModel: process.env.OPENAI_CHAT_MODEL || OPENAI_DEFAULT_MODEL,
   langchainAnalystEnabled: process.env.LANGCHAIN_ANALYST_ENABLED === 'true',

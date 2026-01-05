@@ -42,6 +42,7 @@ export interface FactorAnalysis {
 export interface NewsItem {
   headline: string;
   date: string;
+  url?: string;
 }
 
 export interface PeerComparison {
@@ -252,6 +253,17 @@ export interface EquityReport {
   verdict: "BUY" | "HOLD" | "SELL";
   verdictReason: string;
   sources?: { title: string; uri: string }[];
+  _materiality?: {
+    isMaterial: boolean;
+    materialityLevel?: string;
+    verdictChanged?: boolean;
+    targetPriceChangePct?: number | null;
+    consistencyFlag?: boolean;
+    overrideJustification?: string | null;
+    whatChanged?: string[];
+    whyItMatters?: string[];
+    changeLogText?: string;
+  };
 }
 
 export enum LoadingState {

@@ -8,9 +8,14 @@ export interface CreateJobResponse {
   status: JobStatus;
   ticker: string;
   analysisType: AnalysisType;
+  reportId?: string;
   estimatedDuration?: string;
   createdAt?: string;
   deduped?: boolean;
+  // Inline LangChain response shortcut (when not queued)
+  report?: any;
+  materiality?: any;
+  previous?: any;
 }
 
 export interface JobDetail {
@@ -28,12 +33,23 @@ export interface JobDetail {
 }
 
 export const createAnalysisJob = async (ticker: string, analysisType: AnalysisType): Promise<CreateJobResponse> => {
-  const { data } = await apiJson<CreateJobResponse>('/api/jobs/analyze', {
+  // LangChain v2 assessment endpoint (direct, non-queued)
+  const { data } = await apiJson<any>('/api/ai/assessment-v2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ticker, analysisType })
+    body: JSON.stringify({ ticker })
   });
-  return data;
+
+  return {
+    jobId: `inline-${Date.now()}`,
+    status: 'completed',
+    ticker,
+    analysisType: 'langgraph',
+    reportId: data?.reportId,
+    report: data?.report,
+    materiality: data?.materiality,
+    previous: data?.previous
+  };
 };
 
 export const getJobById = async (jobId: string): Promise<JobDetail> => {
