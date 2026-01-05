@@ -39,8 +39,8 @@ const getStoredUser = (): UserProfile | null => {
 
 const getAnalysisType = (): JobAnalysisType => {
   const flag = import.meta.env.VITE_LANGGRAPH_ANALYST_ENABLED;
-  // Invert: run LangChain when flag is not explicitly true
-  return flag === 'false' || flag === undefined ? 'langgraph' : 'gemini';
+  // Default to non-LangChain (gemini); only use langgraph when explicitly enabled
+  return flag === 'true' ? 'langgraph' : 'gemini';
 };
 
 type JobPollerProps = {
