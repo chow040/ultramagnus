@@ -3,12 +3,16 @@ import { logger } from '../utils/logger.js';
 import { logAIFailure } from '../utils/aiLogger.js';
 import { describeGenAiError } from './aiShared.js';
 import { runGeminiAnalysis } from '../services/aiAnalysisService.js';
+import { createReport } from '../services/reportService.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const aiAnalysisRouter = Router();
 
-aiAnalysisRouter.post('/ai/stream-report', async (req, res) => {
+// Require auth so we have a userId to persist reports
+aiAnalysisRouter.post('/ai/stream-report', requireAuth, async (req, res) => {
   const { ticker } = req.body || {};
   const log = req.log || logger;
+  const ownerId = typeof (req as any).userId === 'string' ? (req as any).userId : undefined;
   if (!ticker || typeof ticker !== 'string') {
     return res.status(400).json({ error: 'Ticker is required' });
   }
@@ -18,7 +22,28 @@ aiAnalysisRouter.post('/ai/stream-report', async (req, res) => {
     const report = await runGeminiAnalysis(ticker);
     const durationMs = Date.now() - startedAt;
     log.info({ message: 'ai.report.completed', ticker, durationMs });
-    return res.json({ report, ticker });
+
+    let reportId: string | null = null;
+    if (ownerId) {
+      try {
+        reportId = await createReport(ownerId, {
+          title: report?.companyName || ticker,
+          ticker,
+          status: 'complete',
+          type: 'equity',
+          payload: report
+        });
+      } catch (err: any) {
+        log.warn({
+          message: 'ai.report.save_failed',
+          ticker,
+          ownerId,
+          err: err?.message
+        });
+      }
+    }
+
+    return res.json({ report, ticker, reportId });
   } catch (err: any) {
     const providerDetails = describeGenAiError(err);
     log.error({ message: 'ai.report.failed', err: providerDetails, ticker });
