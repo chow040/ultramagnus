@@ -6,7 +6,6 @@ import { EquityReport, PricePoint, FinancialYear, SavedReportItem, FactorAnalysi
 import { fetchConversation } from '../services/conversationClient';
 import { apiJson } from '../services/apiClient';
 import { streamChatWithGemini } from '../services/geminiService';
-import { FundamentalAssessment } from './FundamentalAssessment';
 import { 
   Target, 
   Calendar, 
@@ -101,6 +100,24 @@ const parsePrice = (priceStr: string) => {
   } catch (e) {
     return 0;
   }
+};
+
+const normalizeDisplayScore = (value: unknown, fallback = 50) => {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseFloat(value.replace(/[^\d.-]/g, ''))
+      : Number.NaN;
+
+  if (!Number.isFinite(parsed)) return fallback;
+  const scaled = parsed >= 0 && parsed <= 10 ? parsed * 10 : parsed;
+  return Math.max(0, Math.min(100, Math.round(scaled)));
+};
+
+const labelFromScore = (score: number): 'Bullish' | 'Neutral' | 'Bearish' => {
+  if (score >= 60) return 'Bullish';
+  if (score <= 40) return 'Bearish';
+  return 'Neutral';
 };
 
 // Helper to calculate Linear Regression (y = mx + b)
@@ -931,8 +948,8 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
 
   // Sentiment Analysis Styling
   const overallSentiment = report.overallSentiment || { score: 50, label: "Neutral", summary: "Data unavailable" };
-  const sentScore = overallSentiment.score;
-  const sentLabel = overallSentiment.label;
+  const sentScore = normalizeDisplayScore(overallSentiment.score, 50);
+  const sentLabel = labelFromScore(sentScore);
   const sentColor = sentScore >= 60 ? 'text-green-400' : sentScore <= 40 ? 'text-red-400' : 'text-amber-400';
   const sentBarColor = sentScore >= 60 ? 'bg-green-500' : sentScore <= 40 ? 'bg-red-500' : 'bg-amber-500';
 
@@ -1178,6 +1195,51 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
   const debtToEquity = latestFin?.shareholderEquity ? (latestFin.totalDebt / latestFin.shareholderEquity).toFixed(2) : 'N/A';
   const roe = latestFin?.shareholderEquity ? ((latestFin.netIncome / latestFin.shareholderEquity) * 100).toFixed(1) + '%' : 'N/A';
 
+  const competitive = report.competitivePositioning;
+  const growthOutlook = report.growthOutlook;
+  const leadershipAssessment = report.leadershipAssessment;
+  const ratios = report.financialRatiosAnalysis;
+
+  const hasCompetitiveInsights = Boolean(
+    competitive?.marketShareTrend ||
+    competitive?.peerComparisonSummary ||
+    (competitive?.relativeAdvantages && competitive.relativeAdvantages.length) ||
+    (competitive?.keyThreats && competitive.keyThreats.length)
+  );
+
+  const hasLeadershipInsights = Boolean(
+    leadershipAssessment?.capitalAllocation ||
+    leadershipAssessment?.executionTrackRecord ||
+    leadershipAssessment?.alignment ||
+    leadershipAssessment?.overall
+  );
+
+  const hasGrowthOutlook = Boolean(
+    growthOutlook?.baseCase3y ||
+    growthOutlook?.bullCase3y ||
+    growthOutlook?.bearCase3y ||
+    (growthOutlook?.drivers && growthOutlook.drivers.length) ||
+    (growthOutlook?.constraints && growthOutlook.constraints.length)
+  );
+
+  const hasRatiosInsights = Boolean(
+    ratios?.takeaway ||
+    ratios?.profitability?.grossMargin ||
+    ratios?.profitability?.operatingMargin ||
+    ratios?.profitability?.netMargin ||
+    ratios?.profitability?.roe ||
+    ratios?.profitability?.roic ||
+    ratios?.liquidity?.currentRatio ||
+    ratios?.liquidity?.quickRatio ||
+    ratios?.leverage?.debtToEquity ||
+    ratios?.leverage?.interestCoverage ||
+    ratios?.cashFlow?.fcfMargin ||
+    ratios?.cashFlow?.fcfConversion ||
+    ratios?.valuation?.pe ||
+    ratios?.valuation?.evEbitda ||
+    ratios?.valuation?.ps
+  );
+
   return (
     <div ref={reportRef} className="space-y-8 animate-fade-in-up pb-10">
       
@@ -1351,9 +1413,6 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
        </LockedFeature>
 
       </div>
-
-      {/* Fundamental Assessment (derived from report) */}
-      <FundamentalAssessment report={report} sourceLabel={report.fundamentalAnalysis ? 'LangGraph' : 'Legacy'} />
 
       {/* NEW: Thesis Evolution / Change Log - LOCKED IN TEASER */}
       {report.history && (
@@ -1771,6 +1830,39 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
                        {report.moatAnalysis.rationale}
                     </p>
                  </div>
+                 {hasCompetitiveInsights && (
+                   <div className="space-y-3 pt-2 border-t border-border">
+                     <div className="text-[10px] font-bold text-secondary uppercase tracking-widest">Competitive Positioning</div>
+                     {competitive?.marketShareTrend ? (
+                       <div className="text-xs text-primary leading-relaxed bg-tertiary/5 p-2 rounded-sm border border-border">
+                         <span className="font-semibold">Market Share Trend:</span> {competitive.marketShareTrend}
+                       </div>
+                     ) : null}
+                     {competitive?.peerComparisonSummary ? (
+                       <div className="text-xs text-primary leading-relaxed bg-tertiary/5 p-2 rounded-sm border border-border">
+                         <span className="font-semibold">Peer Snapshot:</span> {competitive.peerComparisonSummary}
+                       </div>
+                     ) : null}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       <div className="bg-emerald-50 p-2 rounded-sm border border-emerald-100">
+                         <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Advantages</div>
+                         <ul className="space-y-1">
+                           {(competitive?.relativeAdvantages || []).slice(0, 3).map((item, idx) => (
+                             <li key={idx} className="text-xs text-emerald-900 leading-relaxed">• {item}</li>
+                           ))}
+                         </ul>
+                       </div>
+                       <div className="bg-red-50 p-2 rounded-sm border border-red-100">
+                         <div className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1">Threats</div>
+                         <ul className="space-y-1">
+                           {(competitive?.keyThreats || []).slice(0, 3).map((item, idx) => (
+                             <li key={idx} className="text-xs text-red-900 leading-relaxed">• {item}</li>
+                           ))}
+                         </ul>
+                       </div>
+                     </div>
+                   </div>
+                 )}
               </div>
            </div>
         )}
@@ -1800,6 +1892,35 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
                     <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Track Record</div>
                     <div className="text-xs text-primary leading-relaxed bg-tertiary/5 p-2 rounded-sm border border-border">{report.managementQuality.trackRecord}</div>
                  </div>
+
+                 {hasLeadershipInsights && (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                     {leadershipAssessment?.capitalAllocation ? (
+                       <div className="bg-tertiary/10 p-2 rounded-sm border border-border">
+                         <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Capital Allocation</div>
+                         <div className="text-xs text-primary leading-relaxed">{leadershipAssessment.capitalAllocation}</div>
+                       </div>
+                     ) : null}
+                     {leadershipAssessment?.executionTrackRecord ? (
+                       <div className="bg-tertiary/10 p-2 rounded-sm border border-border">
+                         <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Execution</div>
+                         <div className="text-xs text-primary leading-relaxed">{leadershipAssessment.executionTrackRecord}</div>
+                       </div>
+                     ) : null}
+                     {leadershipAssessment?.alignment ? (
+                       <div className="bg-tertiary/10 p-2 rounded-sm border border-border">
+                         <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Alignment</div>
+                         <div className="text-xs text-primary leading-relaxed">{leadershipAssessment.alignment}</div>
+                       </div>
+                     ) : null}
+                     {leadershipAssessment?.overall ? (
+                       <div className="bg-tertiary/10 p-2 rounded-sm border border-border">
+                         <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Leadership Verdict</div>
+                         <div className="text-xs text-primary leading-relaxed">{leadershipAssessment.overall}</div>
+                       </div>
+                     ) : null}
+                   </div>
+                 )}
 
                  <div>
                     <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -1831,6 +1952,46 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
           factors={report.longTermFactors} 
           icon={<Target className="w-5 h-5 text-primary" />}
         />
+        {hasGrowthOutlook && (
+          <div className="md:col-span-2 bg-surface rounded-sm p-4 border border-border">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-bold text-secondary uppercase tracking-widest">3Y Growth Outlook</h4>
+              <div className="text-[10px] text-secondary font-mono">Base / Bull / Bear</div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+              <div className="bg-tertiary/10 rounded-sm border border-border p-3">
+                <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Base</div>
+                <div className="text-xs text-primary leading-relaxed">{growthOutlook?.baseCase3y || 'N/A'}</div>
+              </div>
+              <div className="bg-emerald-50 rounded-sm border border-emerald-100 p-3">
+                <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Bull</div>
+                <div className="text-xs text-emerald-900 leading-relaxed">{growthOutlook?.bullCase3y || 'N/A'}</div>
+              </div>
+              <div className="bg-red-50 rounded-sm border border-red-100 p-3">
+                <div className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1">Bear</div>
+                <div className="text-xs text-red-900 leading-relaxed">{growthOutlook?.bearCase3y || 'N/A'}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="bg-tertiary/5 rounded-sm border border-border p-3">
+                <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Drivers</div>
+                <ul className="space-y-1">
+                  {(growthOutlook?.drivers || []).slice(0, 4).map((item, idx) => (
+                    <li key={idx} className="text-xs text-primary leading-relaxed">• {item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-tertiary/5 rounded-sm border border-border p-3">
+                <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mb-1">Constraints</div>
+                <ul className="space-y-1">
+                  {(growthOutlook?.constraints || []).slice(0, 4).map((item, idx) => (
+                    <li key={idx} className="text-xs text-primary leading-relaxed">• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </LockedFeature>
 
       {/* 7. Main Analysis Area (Tabs) */}
@@ -1964,11 +2125,35 @@ const sentimentColor = earnings.sentiment === 'Bullish' ? 'text-green-400 bg-gre
                  <div className="space-y-8">
                    {/* KPI Grid */}
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <KPICard label="Gross Margin" value={grossMargin} />
-                      <KPICard label="Net Margin" value={netMargin} />
-                      <KPICard label="ROE" value={roe} />
-                      <KPICard label="Debt/Equity" value={debtToEquity} />
+                      <KPICard label="Gross Margin" value={ratios?.profitability?.grossMargin || grossMargin} />
+                      <KPICard label="Net Margin" value={ratios?.profitability?.netMargin || netMargin} />
+                      <KPICard label="ROE" value={ratios?.profitability?.roe || roe} />
+                      <KPICard label="Debt/Equity" value={ratios?.leverage?.debtToEquity || debtToEquity} />
                    </div>
+
+                   {hasRatiosInsights && (
+                     <div className="bg-tertiary/5 rounded-sm p-4 border border-border">
+                       <h4 className="text-sm font-bold text-secondary mb-3 flex items-center gap-2">
+                         <ShieldCheck className="w-4 h-4" /> Ratios Framework
+                       </h4>
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                         <StatBox label="Op Margin" value={ratios?.profitability?.operatingMargin || 'N/A'} />
+                         <StatBox label="ROIC" value={ratios?.profitability?.roic || 'N/A'} />
+                         <StatBox label="Current Ratio" value={ratios?.liquidity?.currentRatio || 'N/A'} />
+                         <StatBox label="Quick Ratio" value={ratios?.liquidity?.quickRatio || 'N/A'} />
+                         <StatBox label="Interest Cov." value={ratios?.leverage?.interestCoverage || 'N/A'} />
+                         <StatBox label="FCF Margin" value={ratios?.cashFlow?.fcfMargin || 'N/A'} />
+                         <StatBox label="FCF Conversion" value={ratios?.cashFlow?.fcfConversion || 'N/A'} />
+                         <StatBox label="EV/EBITDA" value={ratios?.valuation?.evEbitda || 'N/A'} />
+                         <StatBox label="P/S" value={ratios?.valuation?.ps || 'N/A'} />
+                       </div>
+                       {ratios?.takeaway ? (
+                         <p className="text-xs text-primary leading-relaxed mt-3 border-t border-border pt-3">
+                           <span className="font-semibold">Synthesis:</span> {ratios.takeaway}
+                         </p>
+                       ) : null}
+                     </div>
+                   )}
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[300px]">
                       {/* Margin Chart */}

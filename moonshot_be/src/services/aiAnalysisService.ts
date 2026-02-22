@@ -2,7 +2,6 @@ import { ensureClient, MODEL_NAME } from '../routes/aiShared.js';
 
 export const REPORT_PROMPT = (ticker: string) => `
   You are a senior hedge fund analyst. Generate a comprehensive professional equity research report for ${ticker}.
-  Today's date is ${new Date().toISOString()}. Use this as the current date when determining recency, events, and the reportDate field.
   
   You MUST search for the latest real-time data including:
   1. Current Price, Day's Range, 52-Week Range, Market Cap, PE Ratio.
@@ -11,6 +10,8 @@ export const REPORT_PROMPT = (ticker: string) => `
   4. Insider Activity and Institutional Sentiment.
   5. Analyst ratings and price targets (current and historical trend).
   6. Price History (Monthly closes for last 12 months).
+
+  You MUST perform an in-depth analysis of the stock covering its fundamentals, competitive positioning, long term growth prospects, leadership quality, financial ratios. 
 
   Then synthesize this into a JSON object.
   Return ONLY valid JSON, no markdown, no prose. Use this exact shape:
@@ -46,6 +47,33 @@ export const REPORT_PROMPT = (ticker: string) => `
     "history": { "previousDate": "String", "previousVerdict": "BUY/HOLD/SELL", "changeRationale": ["String"] },
     "shortTermFactors": { "positive": [{"title": "String", "detail": "String"}], "negative": [{"title": "String", "detail": "String"}] },
     "longTermFactors": { "positive": [{"title": "String", "detail": "String"}], "negative": [{"title": "String", "detail": "String"}] },
+    "competitivePositioning": {
+      "marketShareTrend": "String",
+      "relativeAdvantages": ["String"],
+      "keyThreats": ["String"],
+      "peerComparisonSummary": "String"
+    },
+    "growthOutlook": {
+      "drivers": ["String"],
+      "constraints": ["String"],
+      "baseCase3y": "String",
+      "bullCase3y": "String",
+      "bearCase3y": "String"
+    },
+    "leadershipAssessment": {
+      "capitalAllocation": "String",
+      "executionTrackRecord": "String",
+      "alignment": "String",
+      "overall": "String"
+    },
+    "financialRatiosAnalysis": {
+      "profitability": { "grossMargin": "String", "operatingMargin": "String", "netMargin": "String", "roe": "String", "roic": "String" },
+      "liquidity": { "currentRatio": "String", "quickRatio": "String" },
+      "leverage": { "debtToEquity": "String", "interestCoverage": "String" },
+      "cashFlow": { "fcfMargin": "String", "fcfConversion": "String" },
+      "valuation": { "pe": "String", "evEbitda": "String", "ps": "String" },
+      "takeaway": "String"
+    },
     "financials": [ { "year": "String", "revenue": Number, "grossProfit": Number, "operatingIncome": Number, "netIncome": Number, "eps": Number, "cashAndEquivalents": Number, "totalDebt": Number, "shareholderEquity": Number, "operatingCashFlow": Number, "capitalExpenditure": Number, "freeCashFlow": Number } ],
     "priceHistory": [ { "month": "String", "price": Number } ],
     "analystPriceTargets": [ { "month": "String", "averageTarget": Number } ],
@@ -81,6 +109,41 @@ export const sanitizeJsonText = (text: string) => {
   const end = cleaned.lastIndexOf('}');
   const candidate = start !== -1 && end !== -1 ? cleaned.slice(start, end + 1) : cleaned;
   return candidate;
+};
+
+const normalizeScore = (value: unknown, fallback = 0) => {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseFloat(value.replace(/[^\d.-]/g, ''))
+      : Number.NaN;
+
+  if (!Number.isFinite(parsed)) return fallback;
+
+  // Some model outputs use a 1-10 scale despite prompt instructions; normalize to 0-100.
+  const scaled = parsed >= 0 && parsed <= 10 ? parsed * 10 : parsed;
+  return Math.max(0, Math.min(100, Math.round(scaled)));
+};
+
+const normalizeSentimentLabel = (label: unknown, score: number): 'Bullish' | 'Neutral' | 'Bearish' => {
+  if (score >= 60) return 'Bullish';
+  if (score <= 40) return 'Bearish';
+
+  if (typeof label === 'string') {
+    const normalized = label.trim().toLowerCase();
+    if (normalized === 'bullish') return 'Bullish';
+    if (normalized === 'bearish') return 'Bearish';
+  }
+  return 'Neutral';
+};
+
+const normalizeOverallSentiment = (value: any) => {
+  const score = normalizeScore(value?.score, 50);
+  return {
+    score,
+    label: normalizeSentimentLabel(value?.label, score),
+    summary: typeof value?.summary === 'string' ? value.summary : ''
+  };
 };
 
 const parseReportJson = (text: string) => {
@@ -143,17 +206,44 @@ export const runGeminiAnalysis = async (ticker: string) => {
       bull: { label: 'Bull', price: 'N/A', logic: '', probability: '' }
     }),
     summary: safe(raw.summary, ''),
-    rocketScore: safe(raw.rocketScore, 0),
+    rocketScore: normalizeScore(raw.rocketScore, 0),
     rocketReason: safe(raw.rocketReason, ''),
-    financialHealthScore: safe(raw.financialHealthScore, 0),
+    financialHealthScore: normalizeScore(raw.financialHealthScore, 0),
     financialHealthReason: safe(raw.financialHealthReason, ''),
-    momentumScore: safe(raw.momentumScore, 0),
+    momentumScore: normalizeScore(raw.momentumScore, 0),
     momentumReason: safe(raw.momentumReason, ''),
     moatAnalysis: safe(raw.moatAnalysis, { moatRating: 'None', moatSource: '', rationale: '' }),
     managementQuality: safe(raw.managementQuality, { executiveTenure: '', insiderOwnership: '', trackRecord: '', governanceRedFlags: '', verdict: '' }),
     history: safe(raw.history, { previousDate: '', previousVerdict: 'HOLD', changeRationale: [] }),
     shortTermFactors: safe(raw.shortTermFactors, { positive: [], negative: [] }),
     longTermFactors: safe(raw.longTermFactors, { positive: [], negative: [] }),
+    competitivePositioning: safe(raw.competitivePositioning, {
+      marketShareTrend: '',
+      relativeAdvantages: [],
+      keyThreats: [],
+      peerComparisonSummary: ''
+    }),
+    growthOutlook: safe(raw.growthOutlook, {
+      drivers: [],
+      constraints: [],
+      baseCase3y: '',
+      bullCase3y: '',
+      bearCase3y: ''
+    }),
+    leadershipAssessment: safe(raw.leadershipAssessment, {
+      capitalAllocation: '',
+      executionTrackRecord: '',
+      alignment: '',
+      overall: ''
+    }),
+    financialRatiosAnalysis: safe(raw.financialRatiosAnalysis, {
+      profitability: { grossMargin: '', operatingMargin: '', netMargin: '', roe: '', roic: '' },
+      liquidity: { currentRatio: '', quickRatio: '' },
+      leverage: { debtToEquity: '', interestCoverage: '' },
+      cashFlow: { fcfMargin: '', fcfConversion: '' },
+      valuation: { pe: '', evEbitda: '', ps: '' },
+      takeaway: ''
+    }),
     financials: baseArray(raw.financials),
     priceHistory: baseArray(raw.priceHistory),
     analystPriceTargets: baseArray(raw.analystPriceTargets),
@@ -161,7 +251,7 @@ export const runGeminiAnalysis = async (ticker: string) => {
     upcomingEvents: baseArray(raw.upcomingEvents),
     recentNews: baseArray(raw.recentNews),
     earningsCallAnalysis: safe(raw.earningsCallAnalysis, { sentiment: 'Neutral', summary: '', keyTakeaways: [] }),
-    overallSentiment: safe(raw.overallSentiment, { score: 50, label: 'Neutral', summary: '' }),
+    overallSentiment: normalizeOverallSentiment(raw.overallSentiment),
     insiderActivity: baseArray(raw.insiderActivity),
     riskMetrics: safe(raw.riskMetrics, { beta: '', shortInterestPercentage: '', shortInterestRatio: '', volatility: '' }),
     institutionalSentiment: safe(raw.institutionalSentiment, ''),
@@ -169,15 +259,7 @@ export const runGeminiAnalysis = async (ticker: string) => {
     valuation: safe(raw.valuation, ''),
     verdict: safe(raw.verdict, 'HOLD'),
     verdictReason: safe(raw.verdictReason, ''),
-    sources: baseArray(raw.sources),
-    fundamentalAnalysis: safe(raw.fundamentalAnalysis, {
-      schemaVersion: '1.0',
-      method: '',
-      thesis: { bullets: [] },
-      valuation: { currency: 'USD', currentPrice: null, intrinsicValue: null, upsidePct: null, inputs: [], notes: '' },
-      recommendation: { rating: 'HOLD', rationale: '' },
-      risks: []
-    })
+    sources: baseArray(raw.sources)
   };
 
   return report;

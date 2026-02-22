@@ -73,6 +73,74 @@ interface LibraryCardProps {
 
 type FilterType = 'ALL' | 'BOOKMARKED' | 'BULLISH';
 
+const formatReportCardDate = (value?: string | number | Date | null) => {
+  if (value === null || value === undefined) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return typeof value === 'string' ? value : '';
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const getUserLocale = () => {
+  if (typeof navigator !== 'undefined' && navigator.language) return navigator.language;
+  return 'en-US';
+};
+
+const extractCurrencyCode = (value?: string) => {
+  if (!value) return null;
+  const match = value.toUpperCase().match(/\b([A-Z]{3})\b/);
+  return match?.[1] || null;
+};
+
+const inferCurrencyFromSymbol = (value?: string) => {
+  if (!value) return null;
+  if (value.includes('€')) return 'EUR';
+  if (value.includes('£')) return 'GBP';
+  if (value.includes('¥')) return 'JPY';
+  if (value.includes('₹')) return 'INR';
+  if (value.includes('₩')) return 'KRW';
+  if (value.includes('$')) return 'USD';
+  return null;
+};
+
+const parseMagnitude = (value?: string) => {
+  if (!value) return null;
+  const clean = value.replace(/,/g, '').trim();
+  const numMatch = clean.match(/-?\d+(\.\d+)?/);
+  if (!numMatch) return null;
+  const numeric = Number.parseFloat(numMatch[0]);
+  if (!Number.isFinite(numeric)) return null;
+
+  const upper = clean.toUpperCase();
+  const unit = upper.match(/\b([KMBT])\b|([KMBT])$/)?.[1] || upper.match(/\b([KMBT])\b|([KMBT])$/)?.[2] || '';
+  const multiplier = unit === 'T' ? 1e12 : unit === 'B' ? 1e9 : unit === 'M' ? 1e6 : unit === 'K' ? 1e3 : 1;
+  return { value: numeric * multiplier, hasMagnitude: Boolean(unit) };
+};
+
+const formatCurrencyValue = (raw: string | undefined, fallbackCurrency?: string, compact = false) => {
+  if (!raw) return raw || 'N/A';
+  const locale = getUserLocale();
+  const parsed = parseMagnitude(raw);
+  if (!parsed) return raw;
+
+  const currency = extractCurrencyCode(raw) || inferCurrencyFromSymbol(raw) || fallbackCurrency;
+  if (!currency) return raw;
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+      notation: compact || parsed.hasMagnitude ? 'compact' : 'standard',
+      maximumFractionDigits: compact || parsed.hasMagnitude ? 2 : 2,
+      minimumFractionDigits: compact || parsed.hasMagnitude ? 0 : 2
+    }).format(parsed.value);
+  } catch {
+    return raw;
+  }
+};
+
 // --- SIDEBAR COMPONENT ---
 const DashboardSidebar = ({ library, sessions }: { library: SavedReportItem[], sessions: AnalysisSession[] }) => {
     // Mock Data for "Market Radar" - In a real app, this would come from an API
@@ -297,7 +365,7 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
         rocketScore: session.result.rocketScore,
         marketCap: session.result.marketCap,
         priceTarget: session.result.priceTarget,
-        reportDate: session.result.reportDate,
+        reportDate: formatReportCardDate(session.result.reportDate),
         isBookmarked: false,
         isNew: true
      };
@@ -311,7 +379,7 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
         rocketScore: savedItem.fullReport?.rocketScore ?? savedItem.rocketScore,
         marketCap: savedItem.fullReport?.marketCap,
         priceTarget: savedItem.fullReport?.priceTarget ?? savedItem.priceTarget,
-        reportDate: savedItem.fullReport?.reportDate || new Date(savedItem.addedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        reportDate: formatReportCardDate(savedItem.fullReport?.reportDate || savedItem.addedAt),
         isBookmarked: savedItem.isBookmarked,
         isNew: false
      };
@@ -327,6 +395,17 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
   // Calculate Upside if possible
   let upside = "N/A";
   let upsideVal = 0;
+  const cardCurrency =
+    extractCurrencyCode(displayData.price) ||
+    extractCurrencyCode(displayData.priceTarget) ||
+    extractCurrencyCode(displayData.marketCap) ||
+    inferCurrencyFromSymbol(displayData.price) ||
+    inferCurrencyFromSymbol(displayData.priceTarget) ||
+    inferCurrencyFromSymbol(displayData.marketCap) ||
+    'USD';
+  const formattedPrice = formatCurrencyValue(displayData.price, cardCurrency, false);
+  const formattedTarget = formatCurrencyValue(displayData.priceTarget, cardCurrency, false);
+  const formattedMarketCap = formatCurrencyValue(displayData.marketCap, cardCurrency, true);
   if (displayData.price && displayData.priceTarget) {
       const current = parseFloat(displayData.price.replace(/[^0-9.]/g, ''));
       const target = parseFloat(displayData.priceTarget.replace(/[^0-9.]/g, ''));
@@ -374,12 +453,12 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr_1fr_1fr] gap-4 flex-1 items-center justify-items-center">
                 <div className="flex flex-col items-center w-full">
                     <span className="text-[10px] font-medium text-secondary uppercase tracking-wider mb-1">Entry</span>
-                    <span className="font-mono font-medium text-primary">{displayData.price}</span>
+                    <span className="font-mono font-medium text-primary">{formattedPrice}</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-secondary" />
                 <div className="flex flex-col items-center w-full">
                     <span className="text-[10px] font-medium text-secondary uppercase tracking-wider mb-1">Target</span>
-                    <span className="font-mono font-medium text-primary">{displayData.priceTarget || 'N/A'}</span>
+                    <span className="font-mono font-medium text-primary">{formattedTarget || 'N/A'}</span>
                 </div>
                 <div className="flex flex-col items-center w-full">
                     <span className="text-[10px] font-medium text-secondary uppercase tracking-wider mb-1">Upside</span>
@@ -475,11 +554,11 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
            <div className="grid grid-cols-3 gap-2 text-center bg-tertiary/10 rounded-lg p-2 border border-border">
                <div>
                    <div className="text-[9px] font-bold text-secondary uppercase tracking-wider mb-1">Entry</div>
-                   <div className="font-mono font-bold text-primary text-sm">{displayData.price}</div>
+                   <div className="font-mono font-bold text-primary text-sm">{formattedPrice}</div>
                </div>
                <div className="border-x border-border">
                    <div className="text-[9px] font-bold text-secondary uppercase tracking-wider mb-1">Target</div>
-                   <div className="font-mono font-bold text-primary text-sm">{displayData.priceTarget || 'N/A'}</div>
+                   <div className="font-mono font-bold text-primary text-sm">{formattedTarget || 'N/A'}</div>
                </div>
                <div>
                    <div className="text-[9px] font-bold text-secondary uppercase tracking-wider mb-1">Upside</div>
@@ -506,7 +585,7 @@ const LibraryCard: React.FC<LibraryCardProps> = ({
                 
                 {displayData.marketCap && (
                     <div className="text-[10px] text-secondary font-mono">
-                        {displayData.marketCap}
+                        {formattedMarketCap}
                     </div>
                 )}
            </div>

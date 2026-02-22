@@ -87,11 +87,11 @@ Guidance:
 1. Decide the most appropriate valuation method with your expertise. Set method to any clear identifier (e.g., pe_multiple, ev_ebitda, ev_sales, dividend_discount, dcf, residual_income, etc.).
 2. List assumptions in inputs as an array of { name, value, unit, note }. Unknown values -> null.
 3. Keep keys as defined; if a field is unknown, set null.
-4. Build a financial model based on the provided financials and report data with additional information in the report to support your valuation and return in under 'fundamentalAnalysis' section in JSON. Mandate that all valuation inputs come from the provided financialData/current price.
+4. Build a financial model based on the provided financials and report data with additional information in the report. Mandate that all valuation inputs come from the provided financialData/current price.
 4a. 'inputs' should include at least the key parameters used in your valuation method (e.g., forward_pe, next_year_eps for pe_multiple).
-6. The returned JSON MUST include the 'fundamentalAnalysis' object per the schema. If any field is unknown, set it to null or [].
 5. Do not use analyst price targets directly from the report; only use them to cross-check your own work. If they differ significantly, explain why in valuation.notes.
-7. Populate the 'financials' array directly from the provided financialData; do NOT invent numbers. If a field is missing in financialData, set it to null.
+6. Populate the 'financials' array directly from the provided financialData; do NOT invent numbers. If a field is missing in financialData, set it to null.
+7. rocketScore, financialHealthScore, and momentumScore must be integers from 0 to 100 (not 1-10 scale).
 8. Return ONLY one JSON object. No markdown, no prose.
 
 Draft report (JSON):
@@ -106,7 +106,7 @@ ${JSON.stringify(financialRatios || {}, null, 2)}
 Earnings surprises (JSON):
 ${JSON.stringify(earningsSurprises || [], null, 2)}
 
-Return a single JSON object that matches this full report schema (including fundamentalAnalysis). If any value is unknown, set it to null or [].
+Return a single JSON object that matches this full report schema. If any value is unknown, set it to null or [].
 {
   "companyName": "String",
   "ticker": "String",
@@ -156,27 +156,34 @@ Return a single JSON object that matches this full report schema (including fund
   "valuation": "String",
   "verdict": "BUY/HOLD/SELL",
   "verdictReason": "String",
-  "sources": [ { "title": "String", "uri": "String" } ],
-  "fundamentalAnalysis": {
-    "schemaVersion": "1.0",
-    "method": "pe_multiple",
-    "thesis": { "bullets": ["...", "...", "..."] },
-    "valuation": {
-      "currency": "USD",
-      "currentPrice": 275.37,
-      "intrinsicValue": 396.94,
-      "upsidePct": 44.2,
-      "inputs": [
-        { "name": "forward_pe", "value": 30, "unit": "x", "note": "peer median" },
-        { "name": "next_year_eps", "value": 8.58, "unit": "USD", "note": "" }
-      ],
-      "notes": "Optional short rationale for the chosen method"
-    },
-    "recommendation": { "rating": "BUY", "rationale": "One sentence" },
-    "risks": ["risk1", "risk2"]
-  }
+  "sources": [ { "title": "String", "uri": "String" } ]
 }
 `;
+
+const normalizeScore = (value: unknown): number | undefined => {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseFloat(value.replace(/[^\d.-]/g, ''))
+      : Number.NaN;
+
+  if (!Number.isFinite(parsed)) return undefined;
+  const scaled = parsed >= 0 && parsed <= 10 ? parsed * 10 : parsed;
+  return Math.max(0, Math.min(100, Math.round(scaled)));
+};
+
+const normalizeReportScores = (report?: Partial<Report>) => {
+  if (!report) return report;
+  const rocketScore = normalizeScore(report.rocketScore);
+  const financialHealthScore = normalizeScore(report.financialHealthScore);
+  const momentumScore = normalizeScore(report.momentumScore);
+  return {
+    ...report,
+    rocketScore: rocketScore ?? report.rocketScore,
+    financialHealthScore: financialHealthScore ?? report.financialHealthScore,
+    momentumScore: momentumScore ?? report.momentumScore
+  };
+};
 
 export async function equityAnalystNode(state: AgentState): Promise<Partial<AgentState>> {
   const llm = getAnalystLLM();
@@ -193,7 +200,7 @@ export async function equityAnalystNode(state: AgentState): Promise<Partial<Agen
   } as any);
   const text = toText(response);
   writeRaw(state.ticker, 'equityAnalyst', text);
-  const report = parseReport(text);
+  const report = normalizeReportScores(parseReport(text));
 
   if (!report) {
     logger.warn({ message: 'langgraph.equityAnalyst.parse_failed', ticker: state.ticker, sample: text?.slice(0, 2000) });
@@ -208,24 +215,6 @@ export async function equityAnalystNode(state: AgentState): Promise<Partial<Agen
 
   if (!nextReport.ticker) {
     nextReport.ticker = state.ticker;
-  }
-
-  if (!nextReport.fundamentalAnalysis) {
-    nextReport.fundamentalAnalysis = {
-      schemaVersion: '1.0',
-      method: null,
-      thesis: { bullets: [] },
-      valuation: {
-        currency: 'USD',
-        currentPrice: null,
-        intrinsicValue: null,
-        upsidePct: null,
-        inputs: [],
-        notes: ''
-      },
-      recommendation: { rating: null, rationale: '' },
-      risks: []
-    };
   }
 
   return {

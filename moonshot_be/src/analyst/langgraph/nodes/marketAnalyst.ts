@@ -125,6 +125,31 @@ const parseReport = (text: string): Partial<Report> | undefined => {
   return undefined;
 };
 
+const normalizeScore = (value: unknown): number | undefined => {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number.parseFloat(value.replace(/[^\d.-]/g, ''))
+      : Number.NaN;
+
+  if (!Number.isFinite(parsed)) return undefined;
+  const scaled = parsed >= 0 && parsed <= 10 ? parsed * 10 : parsed;
+  return Math.max(0, Math.min(100, Math.round(scaled)));
+};
+
+const normalizeReportScores = (report?: Partial<Report>) => {
+  if (!report) return report;
+  const rocketScore = normalizeScore(report.rocketScore);
+  const financialHealthScore = normalizeScore(report.financialHealthScore);
+  const momentumScore = normalizeScore(report.momentumScore);
+  return {
+    ...report,
+    rocketScore: rocketScore ?? report.rocketScore,
+    financialHealthScore: financialHealthScore ?? report.financialHealthScore,
+    momentumScore: momentumScore ?? report.momentumScore
+  };
+};
+
 export async function marketAnalystNode(state: AgentState): Promise<Partial<AgentState>> {
   const llm = getAnalystLLM();
   const prompt = buildMarketReportPrompt(state.ticker);
@@ -134,7 +159,7 @@ export async function marketAnalystNode(state: AgentState): Promise<Partial<Agen
   } as any);
   const text = toText(response);
   writeRaw(state.ticker, 'marketAnalyst', text);
-  const report = parseReport(text);
+  const report = normalizeReportScores(parseReport(text));
 
   if (!report) {
     logger.warn({
