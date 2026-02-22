@@ -12,7 +12,6 @@ export interface AssessmentSnapshot {
   verdict?: string;
   priceTarget?: string | number;
   valuation?: { intrinsicValue?: number | null };
-  fundamentalAnalysis?: { valuation?: { intrinsicValue?: number | null } };
   shortTermFactors?: { positive?: { title?: string; detail?: string }[]; negative?: { title?: string; detail?: string }[] };
   longTermFactors?: { positive?: { title?: string; detail?: string }[]; negative?: { title?: string; detail?: string }[] };
   earningsCallAnalysis?: { sentiment?: string; summary?: string; keyTakeaways?: string[] };

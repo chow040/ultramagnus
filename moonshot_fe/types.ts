@@ -39,6 +39,56 @@ export interface FactorAnalysis {
   negative: FactorItem[];
 }
 
+export interface CompetitivePositioning {
+  marketShareTrend: string;
+  relativeAdvantages: string[];
+  keyThreats: string[];
+  peerComparisonSummary: string;
+}
+
+export interface GrowthOutlook {
+  drivers: string[];
+  constraints: string[];
+  baseCase3y: string;
+  bullCase3y: string;
+  bearCase3y: string;
+}
+
+export interface LeadershipAssessment {
+  capitalAllocation: string;
+  executionTrackRecord: string;
+  alignment: string;
+  overall: string;
+}
+
+export interface FinancialRatiosAnalysis {
+  profitability: {
+    grossMargin: string;
+    operatingMargin: string;
+    netMargin: string;
+    roe: string;
+    roic: string;
+  };
+  liquidity: {
+    currentRatio: string;
+    quickRatio: string;
+  };
+  leverage: {
+    debtToEquity: string;
+    interestCoverage: string;
+  };
+  cashFlow: {
+    fcfMargin: string;
+    fcfConversion: string;
+  };
+  valuation: {
+    pe: string;
+    evEbitda: string;
+    ps: string;
+  };
+  takeaway: string;
+}
+
 export interface NewsItem {
   headline: string;
   date: string;
@@ -218,12 +268,13 @@ export interface EquityReport {
   // New AI Assessment Schema
   aiAssessment?: AiAssessment;
   
-  // Fundamental Analysis (New Node)
-  fundamentalAnalysis?: any;
-
   // Analysis
   shortTermFactors: FactorAnalysis;
   longTermFactors: FactorAnalysis;
+  competitivePositioning?: CompetitivePositioning;
+  growthOutlook?: GrowthOutlook;
+  leadershipAssessment?: LeadershipAssessment;
+  financialRatiosAnalysis?: FinancialRatiosAnalysis;
   
   financials: FinancialYear[];
   priceHistory: PricePoint[];
