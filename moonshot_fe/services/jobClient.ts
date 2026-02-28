@@ -30,21 +30,13 @@ export interface JobDetail {
 }
 
 export const createAnalysisJob = async (ticker: string, analysisType: AnalysisType): Promise<CreateJobResponse> => {
-  // Non-LangChain inline endpoint
-  const { data } = await apiJson<any>('/api/ai/stream-report', {
+  const { data } = await apiJson<CreateJobResponse>('/api/jobs/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ticker })
-  });
+    body: JSON.stringify({ ticker, analysisType })
+  }, { operation: 'jobs.create' });
 
-  return {
-    jobId: `inline-${Date.now()}`,
-    status: 'completed',
-    ticker,
-    analysisType: 'gemini',
-    reportId: data?.reportId,
-    report: data?.report
-  };
+  return data;
 };
 
 export const getJobById = async (jobId: string): Promise<JobDetail> => {

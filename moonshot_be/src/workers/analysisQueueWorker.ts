@@ -1,5 +1,5 @@
 import { PgBoss } from 'pg-boss';
-import { eq } from 'drizzle-orm';
+import { and, eq, lt } from 'drizzle-orm';
 import { config } from '../config/env.js';
 import { runAnalystGraph } from '../analyst/langgraph/analystWorkflow.js';
 import { db } from '../db/client.js';
@@ -16,6 +16,22 @@ interface QueuePayload {
   ticker: string;
   analysisType?: AnalysisType;
 }
+
+const JOB_TIMEOUT_MS = Number(process.env.ANALYSIS_JOB_TIMEOUT_MS || 8 * 60 * 1000);
+
+const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timer: NodeJS.Timeout | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`analysis timeout after ${ms}ms: ${label}`)), ms);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
 
 const runLanggraphAnalysis = async (ticker: string) => {
   const state = await runAnalystGraph(ticker);
@@ -41,11 +57,12 @@ const processJob = async (payload: QueuePayload) => {
   if (!started) {
     throw new Error(`Job not found: ${jobId}`);
   }
+  logger.info({ message: 'analysis_worker.job.started', jobId, ticker, analysisType });
 
   try {
     const reportPayload = analysisType === 'langgraph'
-      ? await runLanggraphAnalysis(ticker)
-      : await runGeminiAnalysis(ticker);
+      ? await withTimeout(runLanggraphAnalysis(ticker), JOB_TIMEOUT_MS, `langgraph:${ticker}`)
+      : await withTimeout(runGeminiAnalysis(ticker), JOB_TIMEOUT_MS, `gemini:${ticker}`);
 
     const title = (reportPayload as any)?.companyName
       ? `${(reportPayload as any).companyName} (${ticker}) Analysis`
@@ -71,6 +88,30 @@ const processJob = async (payload: QueuePayload) => {
   }
 };
 
+const recoverStaleJobs = async () => {
+  const staleBefore = new Date(Date.now() - JOB_TIMEOUT_MS);
+  const recovered = await db.update(analysisJobs)
+    .set({
+      status: 'failed',
+      error: `Recovered stale processing job after ${JOB_TIMEOUT_MS}ms timeout window`,
+      completedAt: new Date()
+    })
+    .where(and(
+      eq(analysisJobs.status, 'processing'),
+      lt(analysisJobs.startedAt, staleBefore)
+    ))
+    .returning({ id: analysisJobs.id, ticker: analysisJobs.ticker });
+
+  if (recovered.length) {
+    logger.warn({
+      message: 'analysis_worker.recovered_stale_jobs',
+      count: recovered.length,
+      jobIds: recovered.map((r) => r.id),
+      tickers: recovered.map((r) => r.ticker)
+    });
+  }
+};
+
 export const startAnalysisWorker = async () => {
   const boss = new PgBoss({
     connectionString: config.databaseUrl,
@@ -83,7 +124,12 @@ export const startAnalysisWorker = async () => {
   });
 
   await boss.start();
-  await boss.createQueue(JOB_QUEUE_NAME);
+  await recoverStaleJobs();
+  try {
+    await boss.createQueue(JOB_QUEUE_NAME);
+  } catch (err) {
+    logger.warn({ message: 'analysis_worker.create_queue_failed', queue: JOB_QUEUE_NAME, err });
+  }
 
   await boss.work<QueuePayload>(JOB_QUEUE_NAME, { batchSize: 1, pollingIntervalSeconds: 5 }, async (job) => {
     const payload = Array.isArray(job)

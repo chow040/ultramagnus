@@ -17,7 +17,8 @@ module.exports = {
       error_file: path.join(logDir, 'pm2-error.log'),
       env: {
         NODE_ENV: process.env.NODE_ENV || 'production',
-        PORT: process.env.PORT || 4000
+        PORT: process.env.PORT || 4000,
+        START_WORKER_IN_API: process.env.START_WORKER_IN_API || 'true'
       }
     },
     {

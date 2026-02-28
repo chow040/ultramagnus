@@ -36,6 +36,9 @@ export const config = {
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   openaiChatModel: process.env.OPENAI_CHAT_MODEL || OPENAI_DEFAULT_MODEL,
   langchainAnalystEnabled: process.env.LANGCHAIN_ANALYST_ENABLED === 'true',
+  startWorkerInApi: process.env.START_WORKER_IN_API
+    ? process.env.START_WORKER_IN_API === 'true'
+    : true,
   nodeEnv,
   logLevel: defaultLogLevel,
   serviceName: process.env.SERVICE_NAME || 'moonshot-be',

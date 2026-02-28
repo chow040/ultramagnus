@@ -144,9 +144,15 @@ pm2 set pm2-logrotate:retain 10
 pm2 set pm2-logrotate:compress true
 ```
 
-If you only want the API (no worker), you can still run:
+The API now starts an embedded analysis worker by default (`START_WORKER_IN_API=true`),
+so jobs can still complete even if `moonshot-worker` is not running.
+Running `moonshot-worker` is still recommended for higher throughput and isolation.
+
+If you need to start processes manually, you can run API-only (embedded worker enabled) or both:
 ```bash
 pm2 start dist/src/server.js --name "moonshot-be"
+# Optional dedicated worker process for extra capacity:
+pm2 start dist/src/workers/index.js --name "moonshot-worker"
 pm2 save
 pm2 startup
 # Follow the instruction printed by the command above
@@ -182,6 +188,10 @@ server {
         proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
     }
 }
 ```
